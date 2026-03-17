@@ -28,44 +28,48 @@ from ovos_agentic_loop.tools.web import WebSearchArgs, WebSearchToolBox
 class TestFileSystemToolBox:
     """Tests for FileSystemToolBox."""
 
+    def _box(self, tmp_path: Path, **cfg: Any) -> "FileSystemToolBox":
+        """Create a sandboxed FileSystemToolBox rooted at tmp_path."""
+        return FileSystemToolBox(config={"root_path": str(tmp_path), **cfg})
+
     def test_read_existing_file(self, tmp_path: Path) -> None:
         """read_file returns the file content."""
         f = tmp_path / "hello.txt"
         f.write_text("hello world", encoding="utf-8")
-        box = FileSystemToolBox()
-        result = box.call_tool("read_file", {"path": str(f)})
+        result = self._box(tmp_path).call_tool("read_file", {"path": "hello.txt"})
         assert result.content == "hello world"
         assert "hello.txt" in result.path
 
-    def test_read_missing_file(self) -> None:
+    def test_read_missing_file(self, tmp_path: Path) -> None:
         """read_file returns an error message for a non-existent path."""
-        box = FileSystemToolBox()
-        result = box.call_tool("read_file", {"path": "/tmp/__nonexistent_ovos_test__.txt"})
+        result = self._box(tmp_path).call_tool("read_file", {"path": "nonexistent.txt"})
         assert "Error" in result.content
+
+    def test_path_traversal_blocked(self, tmp_path: Path) -> None:
+        """Paths that escape the sandbox root are rejected."""
+        result = self._box(tmp_path).call_tool("read_file", {"path": "../../etc/passwd"})
+        assert "Access denied" in result.content
 
     def test_write_read_roundtrip(self, tmp_path: Path) -> None:
         """write_file creates the file; read_file retrieves its contents."""
-        box = FileSystemToolBox()
-        target = str(tmp_path / "subdir" / "out.txt")
-        write_result = box.call_tool("write_file", {"path": target, "content": "round-trip"})
+        box = self._box(tmp_path)
+        write_result = box.call_tool("write_file", {"path": "subdir/out.txt", "content": "round-trip"})
         assert write_result.success is True
-        read_result = box.call_tool("read_file", {"path": target})
+        read_result = box.call_tool("read_file", {"path": "subdir/out.txt"})
         assert read_result.content == "round-trip"
 
     def test_write_blocked_when_disabled(self, tmp_path: Path) -> None:
         """write_file returns success=False when allow_write=False."""
-        box = FileSystemToolBox(config={"allow_write": False})
-        target = str(tmp_path / "should_not_exist.txt")
-        result = box.call_tool("write_file", {"path": target, "content": "x"})
+        box = self._box(tmp_path, allow_write=False)
+        result = box.call_tool("write_file", {"path": "nope.txt", "content": "x"})
         assert result.success is False
-        assert not Path(target).exists()
+        assert not (tmp_path / "nope.txt").exists()
 
     def test_list_directory(self, tmp_path: Path) -> None:
         """list_directory returns files in the directory."""
         (tmp_path / "a.py").write_text("")
         (tmp_path / "b.txt").write_text("")
-        box = FileSystemToolBox()
-        result = box.call_tool("list_directory", {"path": str(tmp_path)})
+        result = self._box(tmp_path).call_tool("list_directory", {"path": "."})
         names = [Path(e).name for e in result.entries]
         assert "a.py" in names
         assert "b.txt" in names
@@ -74,26 +78,22 @@ class TestFileSystemToolBox:
         """list_directory respects the glob pattern filter."""
         (tmp_path / "a.py").write_text("")
         (tmp_path / "b.txt").write_text("")
-        box = FileSystemToolBox()
-        result = box.call_tool("list_directory", {"path": str(tmp_path), "pattern": "*.py"})
+        result = self._box(tmp_path).call_tool("list_directory", {"path": ".", "pattern": "*.py"})
         names = [Path(e).name for e in result.entries]
         assert "a.py" in names
         assert "b.txt" not in names
 
     def test_search_in_files_finds_match(self, tmp_path: Path) -> None:
         """search_in_files returns matching lines."""
-        f = tmp_path / "code.py"
-        f.write_text("def foo():\n    return 42\n")
-        box = FileSystemToolBox()
-        result = box.call_tool("search_in_files", {"pattern": "def foo", "path": str(tmp_path)})
+        (tmp_path / "code.py").write_text("def foo():\n    return 42\n")
+        result = self._box(tmp_path).call_tool("search_in_files", {"pattern": "def foo", "path": "."})
         assert result.total >= 1
         assert any("def foo" in m["line"] for m in result.matches)
 
     def test_search_in_files_no_match(self, tmp_path: Path) -> None:
         """search_in_files returns empty list when no lines match."""
         (tmp_path / "code.py").write_text("hello world\n")
-        box = FileSystemToolBox()
-        result = box.call_tool("search_in_files", {"pattern": "zzznomatch", "path": str(tmp_path)})
+        result = self._box(tmp_path).call_tool("search_in_files", {"pattern": "zzznomatch", "path": "."})
         assert result.total == 0
 
     def test_find_files_glob(self, tmp_path: Path) -> None:
@@ -101,17 +101,15 @@ class TestFileSystemToolBox:
         (tmp_path / "a.py").write_text("")
         (tmp_path / "b.py").write_text("")
         (tmp_path / "c.txt").write_text("")
-        box = FileSystemToolBox()
-        result = box.call_tool("find_files", {"glob": "**/*.py", "path": str(tmp_path)})
+        result = self._box(tmp_path).call_tool("find_files", {"glob": "**/*.py", "path": "."})
         names = [Path(f).name for f in result.files]
         assert "a.py" in names
         assert "b.py" in names
         assert "c.txt" not in names
 
-    def test_discover_tools_returns_five(self) -> None:
+    def test_discover_tools_returns_five(self, tmp_path: Path) -> None:
         """discover_tools always returns 5 tools."""
-        box = FileSystemToolBox()
-        assert len(box.discover_tools()) == 5
+        assert len(self._box(tmp_path).discover_tools()) == 5
 
 
 # ---------------------------------------------------------------------------
@@ -121,9 +119,16 @@ class TestFileSystemToolBox:
 class TestShellToolBox:
     """Tests for ShellToolBox."""
 
-    def test_run_echo(self) -> None:
-        """run_command captures stdout for a simple echo."""
+    def test_shell_blocked_by_default(self) -> None:
+        """run_command is disabled by default (allow_shell=False)."""
         box = ShellToolBox()
+        result = box.call_tool("run_command", {"command": "echo hello"})
+        assert result.success is False
+        assert "disabled" in result.stderr.lower()
+
+    def test_run_echo(self) -> None:
+        """run_command captures stdout for a simple echo when allow_shell=True."""
+        box = ShellToolBox(config={"allow_shell": True})
         result = box.call_tool("run_command", {"command": "echo hello"})
         assert result.success is True
         assert "hello" in result.stdout
@@ -131,22 +136,21 @@ class TestShellToolBox:
 
     def test_run_failing_command(self) -> None:
         """run_command reports returncode != 0 for a failing command."""
-        box = ShellToolBox()
+        box = ShellToolBox(config={"allow_shell": True})
         result = box.call_tool("run_command", {"command": "exit 1", "cwd": "."})
         assert result.success is False
         assert result.returncode != 0
 
     def test_timeout_respected(self) -> None:
         """run_command times out when the command exceeds the requested timeout."""
-        box = ShellToolBox()
+        box = ShellToolBox(config={"allow_shell": True})
         result = box.call_tool("run_command", {"command": "sleep 60", "timeout": 1})
         assert result.success is False
         assert "timed out" in result.stderr.lower()
 
     def test_max_timeout_caps_requested_timeout(self) -> None:
         """max_timeout config caps any higher requested timeout."""
-        box = ShellToolBox(config={"max_timeout": 5})
-        # We just verify the run still works; the cap is enforced internally.
+        box = ShellToolBox(config={"allow_shell": True, "max_timeout": 5})
         result = box.call_tool("run_command", {"command": "echo ok", "timeout": 999})
         assert result.success is True
 

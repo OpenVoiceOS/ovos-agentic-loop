@@ -189,6 +189,7 @@ class TreeOfThoughtsEngine(AgenticLoopEngine):
             brain: Instantiated ``ChatEngine``.
         """
         self._brain = brain
+        self._inject_brain_into_toolboxes(brain)
 
     def _load_brain(self) -> Optional[ChatEngine]:
         """

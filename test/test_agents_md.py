@@ -103,22 +103,37 @@ class TestAgentsMDContextManagerSystemPrompt:
 class TestAgentsMDContextManagerHistory:
     def test_get_history_empty(self) -> None:
         mgr = AgentsMDContextManager()
-        assert mgr.get_history() == []
+        assert mgr.get_history("sess-1") == []
+
+    def test_sessions_are_isolated(self) -> None:
+        mgr = AgentsMDContextManager()
+        msg = AgentMessage(role=MessageRole.USER, content="hello")
+        mgr.update_history([msg], "sess-A")
+        assert mgr.get_history("sess-A") == [msg]
+        assert mgr.get_history("sess-B") == []
 
     def test_update_history(self) -> None:
         mgr = AgentsMDContextManager()
         msg = AgentMessage(role=MessageRole.USER, content="hello")
-        mgr.update_history(msg)
-        assert len(mgr.get_history()) == 1
-        assert mgr.get_history()[0].content == "hello"
+        mgr.update_history([msg], "s1")
+        assert len(mgr.get_history("s1")) == 1
+        assert mgr.get_history("s1")[0].content == "hello"
+
+    def test_update_history_appends(self) -> None:
+        mgr = AgentsMDContextManager()
+        m1 = AgentMessage(role=MessageRole.USER, content="a")
+        m2 = AgentMessage(role=MessageRole.ASSISTANT, content="b")
+        mgr.update_history([m1], "s")
+        mgr.update_history([m2], "s")
+        assert len(mgr.get_history("s")) == 2
 
     def test_get_history_returns_copy(self) -> None:
         mgr = AgentsMDContextManager()
         msg = AgentMessage(role=MessageRole.USER, content="hi")
-        mgr.update_history(msg)
-        history = mgr.get_history()
+        mgr.update_history([msg], "s")
+        history = mgr.get_history("s")
         history.clear()
-        assert len(mgr.get_history()) == 1
+        assert len(mgr.get_history("s")) == 1
 
 
 class TestAgentsMDContextManagerBuildContext:
@@ -128,15 +143,33 @@ class TestAgentsMDContextManagerBuildContext:
         mgr = AgentsMDContextManager(config={"agents_md_sources": [str(p)]})
 
         user_msg = AgentMessage(role=MessageRole.USER, content="previous")
-        mgr.update_history(user_msg)
+        mgr.update_history([user_msg], "sess")
 
-        messages = mgr.build_conversation_context("new question")
+        messages = mgr.build_conversation_context("new question", "sess")
         roles = [m.role for m in messages]
         assert roles[0] == MessageRole.SYSTEM
         assert roles[-1] == MessageRole.USER
         assert messages[-1].content == "new question"
 
+    def test_history_included_in_context(self, tmp_path: "Path") -> None:
+        p = tmp_path / "AGENTS.md"
+        p.write_text("# S\nbody", encoding="utf-8")
+        mgr = AgentsMDContextManager(config={"agents_md_sources": [str(p)]})
+        mgr.update_history([AgentMessage(role=MessageRole.USER, content="prev")], "s")
+        msgs = mgr.build_conversation_context("now", "s")
+        contents = [m.content for m in msgs]
+        assert "prev" in contents
+        assert "now" in contents
+
+    def test_different_sessions_get_different_history(self) -> None:
+        mgr = AgentsMDContextManager(config={"agents_md_sources": []})
+        mgr.update_history([AgentMessage(role=MessageRole.USER, content="A-msg")], "A")
+        msgs_a = mgr.build_conversation_context("q", "A")
+        msgs_b = mgr.build_conversation_context("q", "B")
+        assert any(m.content == "A-msg" for m in msgs_a)
+        assert not any(m.content == "A-msg" for m in msgs_b)
+
     def test_no_system_prompt_when_empty(self) -> None:
         mgr = AgentsMDContextManager(config={"agents_md_sources": []})
-        messages = mgr.build_conversation_context("hi")
+        messages = mgr.build_conversation_context("hi", "s")
         assert all(m.role != MessageRole.SYSTEM for m in messages)

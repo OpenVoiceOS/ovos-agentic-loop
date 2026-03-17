@@ -5,6 +5,7 @@ import re
 from typing import Dict, List, Optional
 
 from ovos_plugin_manager.templates.agents import AgentContextManager, AgentMessage, MessageRole
+from ovos_utils.log import LOG
 
 
 def _parse_sections(text: str) -> Dict[str, str]:
@@ -48,7 +49,8 @@ def _discover_agents_md_paths() -> List[str]:
     paths: List[str] = []
     try:
         dists = importlib.metadata.distributions()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        LOG.debug(f"AgentsMDContextManager: could not enumerate distributions: {exc}")
         return paths
 
     for dist in dists:
@@ -59,7 +61,8 @@ def _discover_agents_md_paths() -> List[str]:
                     abs_path = str(f.locate().resolve())
                     if os.path.isfile(abs_path):
                         paths.append(abs_path)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            LOG.debug(f"AgentsMDContextManager: error scanning dist files: {exc}")
             continue
     return paths
 
@@ -71,6 +74,9 @@ class AgentsMDContextManager(AgentContextManager):
 
     The same AGENTS.md that governs Claude Code at dev-time can govern a
     runtime LLM agent — both consumers read the same document.
+
+    Per-session conversation history is stored in an in-memory dict keyed by
+    ``session_id``.
 
     Discovery:
 
@@ -102,8 +108,9 @@ class AgentsMDContextManager(AgentContextManager):
         """
         super().__init__(config=config)
         self._extra_paths: List[str] = list(extra_paths or [])
-        self._history: List[AgentMessage] = []
-        self._system_prompt: Optional[str] = None  # cached
+        # Per-session history: {session_id: [AgentMessage, ...]}
+        self._sessions: Dict[str, List[AgentMessage]] = {}
+        self._system_prompt_cache: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Configuration helpers
@@ -168,7 +175,8 @@ class AgentsMDContextManager(AgentContextManager):
             try:
                 with open(path, encoding="utf-8") as fh:
                     text = fh.read()
-            except OSError:
+            except OSError as exc:
+                LOG.warning(f"AgentsMDContextManager: could not read '{path}': {exc}")
                 continue
 
             sections = _parse_sections(text)
@@ -188,50 +196,57 @@ class AgentsMDContextManager(AgentContextManager):
 
         Lazily computed and cached after the first access.
         """
-        if self._system_prompt is None:
-            self._system_prompt = self._build_system_prompt()
-        return self._system_prompt
+        if self._system_prompt_cache is None:
+            self._system_prompt_cache = self._build_system_prompt()
+        return self._system_prompt_cache
 
     def invalidate_cache(self) -> None:
         """Force the system prompt to be rebuilt on next access."""
-        self._system_prompt = None
+        self._system_prompt_cache = None
 
     # ------------------------------------------------------------------
-    # AgentContextManager protocol
+    # AgentContextManager protocol (full ABC compliance)
     # ------------------------------------------------------------------
 
-    def get_history(self) -> List[AgentMessage]:
+    def get_history(self, session_id: str) -> List[AgentMessage]:
         """
-        Return the current conversation history.
-
-        Returns:
-            List of ``AgentMessage`` objects in chronological order.
-        """
-        return list(self._history)
-
-    def update_history(self, message: AgentMessage) -> None:
-        """
-        Append a message to the conversation history.
+        Retrieve the message history for a given session.
 
         Args:
-            message: The ``AgentMessage`` to record.
+            session_id: Conversation session identifier.
+
+        Returns:
+            Snapshot of the session's message list in chronological order.
         """
-        self._history.append(message)
+        return list(self._sessions.get(session_id, []))
+
+    def update_history(self, new_messages: List[AgentMessage], session_id: str) -> None:
+        """
+        Append new messages to a session's history.
+
+        Args:
+            new_messages: Messages to append.
+            session_id: Conversation session identifier.
+        """
+        if session_id not in self._sessions:
+            self._sessions[session_id] = []
+        self._sessions[session_id].extend(new_messages)
 
     def build_conversation_context(
         self,
         utterance: str,
-        lang: Optional[str] = None,
+        session_id: str,
     ) -> List[AgentMessage]:
         """
         Assemble the full message list for an LLM call.
 
-        Prepends the system prompt, appends conversation history, and adds the
-        current user utterance as the final message.
+        Prepends the system prompt (assembled from AGENTS.md), appends the
+        session's conversation history, and adds the current user utterance
+        as the final message.
 
         Args:
             utterance: The user's current input.
-            lang: BCP-47 language code (unused but part of the protocol).
+            session_id: Conversation session identifier used to retrieve history.
 
         Returns:
             Ordered list of ``AgentMessage`` objects ready for a ChatEngine.
@@ -242,6 +257,6 @@ class AgentsMDContextManager(AgentContextManager):
         if prompt:
             messages.append(AgentMessage(role=MessageRole.SYSTEM, content=prompt))
 
-        messages.extend(self._history)
+        messages.extend(self.get_history(session_id))
         messages.append(AgentMessage(role=MessageRole.USER, content=utterance))
         return messages

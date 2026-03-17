@@ -159,3 +159,81 @@ class TestReActNoActionParsed:
         msg = AgentMessage(role=MessageRole.USER, content="tell me something")
         result = engine.continue_chat([msg])
         assert result.content == "Just some plain text response."
+
+
+# ---------------------------------------------------------------------------
+# _extract_json_object — balanced-brace parser
+# ---------------------------------------------------------------------------
+
+class TestExtractJsonObject:
+    def test_simple_flat(self):
+        from ovos_agentic_loop.react import _extract_json_object
+        text = 'prefix {"key": "value"} suffix'
+        assert _extract_json_object(text, 7) == '{"key": "value"}'
+
+    def test_nested(self):
+        from ovos_agentic_loop.react import _extract_json_object
+        text = 'Action Input: {"a": {"b": 1}}'
+        start = text.index("{")
+        result = _extract_json_object(text, start)
+        assert result == '{"a": {"b": 1}}'
+        import json
+        assert json.loads(result) == {"a": {"b": 1}}
+
+    def test_brace_in_string_not_counted(self):
+        from ovos_agentic_loop.react import _extract_json_object
+        text = '{"key": "has } inside"}'
+        result = _extract_json_object(text, 0)
+        assert result == '{"key": "has } inside"}'
+
+    def test_unterminated_returns_none(self):
+        from ovos_agentic_loop.react import _extract_json_object
+        assert _extract_json_object('{"unclosed": 1', 0) is None
+
+    def test_parse_action_nested_json(self):
+        from ovos_agentic_loop.react import _parse_action
+        text = (
+            'Action: search\n'
+            'Action Input: {"filter": {"date": "today"}, "query": "test"}'
+        )
+        result = _parse_action(text)
+        assert result is not None
+        name, args = result
+        assert name == "search"
+        assert args["filter"] == {"date": "today"}
+
+
+class TestBrainInjection:
+    def test_set_brain_propagates_to_toolbox(self):
+        from ovos_agentic_loop.react import ReActLoopEngine
+        from unittest.mock import MagicMock
+        engine = ReActLoopEngine(config={})
+        tb = MagicMock()
+        tb.set_brain = MagicMock()
+        tb.tool_json_list = []
+        engine.load_toolboxes([tb])
+        brain = MagicMock()
+        engine.set_brain(brain)
+        tb.set_brain.assert_called_once_with(brain)
+
+    def test_load_toolboxes_after_brain_also_injects(self):
+        from ovos_agentic_loop.react import ReActLoopEngine
+        from unittest.mock import MagicMock
+        engine = ReActLoopEngine(config={})
+        brain = MagicMock()
+        engine._brain = brain  # set brain first
+        tb = MagicMock()
+        tb.set_brain = MagicMock()
+        tb.tool_json_list = []
+        engine.load_toolboxes([tb])
+        tb.set_brain.assert_called_once_with(brain)
+
+    def test_toolbox_without_set_brain_not_broken(self):
+        from ovos_agentic_loop.react import ReActLoopEngine
+        from unittest.mock import MagicMock
+        engine = ReActLoopEngine(config={})
+        tb = MagicMock(spec=[])  # no set_brain attribute
+        tb.tool_json_list = []
+        engine.load_toolboxes([tb])
+        brain = MagicMock()
+        engine.set_brain(brain)  # must not raise

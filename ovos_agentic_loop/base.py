@@ -3,6 +3,7 @@ import abc
 from typing import Any, Dict, List, Optional
 
 from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine
+from ovos_utils.log import LOG
 
 
 class AgenticLoopEngine(ChatEngine):
@@ -39,13 +40,41 @@ class AgenticLoopEngine(ChatEngine):
         """
         Register a list of ``ToolBox`` instances with this engine.
 
-        Replaces any previously registered toolboxes.
+        Replaces any previously registered toolboxes.  If the engine already
+        has a ``brain`` wired in, it is propagated to toolboxes that expose a
+        ``set_brain`` method (e.g. ``SkillMDToolBox``).
 
         Args:
             toolboxes: Instantiated ``ToolBox`` objects to make available to
                 the agent loop.
         """
         self.toolboxes = list(toolboxes)
+        brain = getattr(self, "_brain", None)
+        if brain is not None:
+            self._inject_brain_into_toolboxes(brain)
+
+    def _inject_brain_into_toolboxes(self, brain: Any) -> None:
+        """
+        Propagate a brain ``ChatEngine`` to toolboxes that require one.
+
+        Calls ``toolbox.set_brain(brain)`` on every registered toolbox that
+        exposes a ``set_brain`` method (duck-type check).  This ensures that
+        toolboxes like ``SkillMDToolBox`` — which use an inner LLM for
+        tool-call routing — receive the brain automatically when it is set on
+        the engine, regardless of load order.
+
+        Args:
+            brain: The ``ChatEngine`` instance to propagate.
+        """
+        for tb in self.toolboxes:
+            if callable(getattr(tb, "set_brain", None)):
+                try:
+                    tb.set_brain(brain)
+                except Exception as exc:  # noqa: BLE001
+                    LOG.warning(
+                        f"AgenticLoopEngine: failed to inject brain into "
+                        f"{type(tb).__name__}: {exc}"
+                    )
 
     def _load_toolboxes_from_config(self) -> None:
         """
@@ -53,22 +82,27 @@ class AgenticLoopEngine(ChatEngine):
 
         Reads a list of toolbox plugin IDs from the plugin config, calls OPM to
         find matching ``ToolBox`` plugins, and populates ``self.toolboxes``.
+        Brain injection is deferred — toolboxes are wired after the engine's
+        ``_brain`` attribute is set (see ``_inject_brain_into_toolboxes``).
         Does nothing if the config key is absent or OPM is unavailable.
         """
         toolbox_ids: List[str] = self.config.get("toolboxes", [])
         if not toolbox_ids:
             return
         try:
-            from ovos_plugin_manager.agent_tools import find_toolbox_plugin, load_toolbox_plugin
-            for tid in toolbox_ids:
-                try:
-                    plugin = load_toolbox_plugin(tid, config=self.config.get(tid, {}))
-                    if plugin is not None:
-                        self.toolboxes.append(plugin)
-                except Exception:  # noqa: BLE001 — best-effort; log and continue
-                    pass
+            from ovos_plugin_manager.agent_tools import load_toolbox_plugin
         except ImportError:
-            pass
+            LOG.debug("AgenticLoopEngine: ovos_plugin_manager.agent_tools not available; "
+                      "skipping toolbox auto-load")
+            return
+
+        for tid in toolbox_ids:
+            try:
+                plugin = load_toolbox_plugin(tid, config=self.config.get(tid, {}))
+                if plugin is not None:
+                    self.toolboxes.append(plugin)
+            except Exception as exc:  # noqa: BLE001
+                LOG.warning(f"AgenticLoopEngine: failed to load toolbox '{tid}': {exc}")
 
     @abc.abstractmethod
     def continue_chat(self, messages: List[AgentMessage],

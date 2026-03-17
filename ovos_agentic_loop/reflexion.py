@@ -137,6 +137,7 @@ class ReflexionEngine(AgenticLoopEngine):
             brain: Instantiated ``ChatEngine`` to use for all LLM calls.
         """
         self._brain = brain
+        self._inject_brain_into_toolboxes(brain)
         if self._inner_react is not None:
             self._inner_react.set_brain(brain)
 

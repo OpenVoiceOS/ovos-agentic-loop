@@ -51,9 +51,53 @@ def _build_react_system(tool_schemas: List[Dict[str, Any]]) -> str:
     )
 
 
+def _extract_json_object(text: str, start: int) -> Optional[str]:
+    """
+    Extract a complete, balanced JSON object starting at ``text[start]``.
+
+    Walks the string counting ``{`` / ``}`` to find the true closing brace,
+    correctly skipping braces inside string literals and handling escaped
+    characters.  This is necessary because the non-greedy regex ``\\{.*?\\}``
+    stops at the first ``}`` and truncates nested JSON objects.
+
+    Args:
+        text: Source string.
+        start: Index of the opening ``{``.
+
+    Returns:
+        The full JSON substring, or ``None`` if the object is unterminated.
+    """
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
 def _parse_action(text: str) -> Optional[tuple]:
     """
     Extract ``(tool_name, tool_input_dict)`` from a ReAct-formatted response.
+
+    Uses a balanced-brace parser for the JSON argument object so that nested
+    dicts (e.g. ``{"filter": {"date": "today"}}``) are captured correctly.
 
     Args:
         text: Raw LLM output text.
@@ -62,12 +106,17 @@ def _parse_action(text: str) -> Optional[tuple]:
         ``(tool_name, args_dict)`` or ``None`` if no action was found.
     """
     action_match = re.search(r"Action:\s*(\S+)", text)
-    input_match = re.search(r"Action Input:\s*(\{.*?\})", text, re.DOTALL)
-    if not action_match or not input_match:
+    # Find the start of the JSON object following "Action Input:"
+    input_start_match = re.search(r"Action Input:\s*(\{)", text)
+    if not action_match or not input_start_match:
         return None
     tool_name = action_match.group(1).strip()
+    json_start = input_start_match.start(1)
+    json_str = _extract_json_object(text, json_start)
+    if json_str is None:
+        return None
     try:
-        args = json.loads(input_match.group(1))
+        args = json.loads(json_str)
     except json.JSONDecodeError:
         return None
     return tool_name, args
@@ -135,10 +184,14 @@ class ReActLoopEngine(AgenticLoopEngine):
         """
         Inject a ChatEngine instance as the inner LLM.
 
+        Also propagates the brain to any registered toolboxes that expose a
+        ``set_brain`` method (e.g. ``SkillMDToolBox``).
+
         Args:
             brain: Instantiated ``ChatEngine`` to use for all LLM calls.
         """
         self._brain = brain
+        self._inject_brain_into_toolboxes(brain)
 
     def _load_brain(self) -> Optional[ChatEngine]:
         """

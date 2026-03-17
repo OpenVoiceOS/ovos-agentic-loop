@@ -86,12 +86,16 @@ class FileSystemToolBox(ToolBox):
     """
     A ``ToolBox`` plugin exposing local filesystem operations as agent tools.
 
-    Provides read, write, list, search, and find capabilities.  The ``write_file``
-    tool is guarded by the ``allow_write`` config flag.
+    Provides read, write, list, search, and find capabilities.
+
+    All paths are resolved relative to ``root_path`` (default: current working
+    directory) and must resolve to a location *inside* that root — path traversal
+    attempts (e.g. ``../../etc/passwd``) are rejected with an error message.
 
     Entry point group: ``opm.agents.toolbox``
 
     Config keys:
+    - ``root_path`` (str, default ``"."``): Sandbox root; all paths must be inside.
     - ``allow_write`` (bool, default ``True``): Set to ``False`` for read-only agents.
     """
 
@@ -102,11 +106,35 @@ class FileSystemToolBox(ToolBox):
         Initialise the toolbox.
 
         Args:
-            config: Plugin configuration dict.  Recognised key:
+            config: Plugin configuration dict.  Recognised keys:
+                ``root_path`` (str, default ``"."``),
                 ``allow_write`` (bool, default ``True``).
         """
         self.config: Dict[str, Any] = config or {}
         super().__init__(toolbox_id=self.toolbox_id)
+
+    @property
+    def root_path(self) -> Path:
+        """Resolved sandbox root; all file operations must stay within it."""
+        return Path(self.config.get("root_path", ".")).resolve()
+
+    def _safe_path(self, requested: str) -> Optional[Path]:
+        """
+        Resolve ``requested`` relative to ``root_path`` and verify it stays inside.
+
+        Args:
+            requested: Path string from the LLM.
+
+        Returns:
+            Resolved ``Path`` if it is within the sandbox, ``None`` otherwise.
+        """
+        root = self.root_path
+        try:
+            resolved = (root / requested).resolve()
+            resolved.relative_to(root)  # raises ValueError if outside
+            return resolved
+        except (ValueError, OSError):
+            return None
 
     # --- tool implementations ---
 
@@ -120,12 +148,17 @@ class FileSystemToolBox(ToolBox):
         Returns:
             ``ReadFileOutput`` with file content or an error message.
         """
-        p = Path(args.path)
+        p = self._safe_path(args.path)
+        if p is None:
+            return ReadFileOutput(
+                content=f"Access denied: path '{args.path}' is outside the sandbox root.",
+                path=args.path,
+            )
         try:
             content = p.read_text(encoding="utf-8")
         except Exception as exc:
             content = f"Error reading file: {exc}"
-        return ReadFileOutput(content=content, path=str(p.resolve()))
+        return ReadFileOutput(content=content, path=str(p))
 
     def _write_file(self, args: WriteFileArgs) -> WriteFileOutput:
         """
@@ -143,11 +176,17 @@ class FileSystemToolBox(ToolBox):
                 path=args.path,
                 message="Write access is disabled (allow_write=False).",
             )
-        p = Path(args.path)
+        p = self._safe_path(args.path)
+        if p is None:
+            return WriteFileOutput(
+                success=False,
+                path=args.path,
+                message=f"Access denied: path '{args.path}' is outside the sandbox root.",
+            )
         try:
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(args.content, encoding="utf-8")
-            return WriteFileOutput(success=True, path=str(p.resolve()), message="File written successfully.")
+            return WriteFileOutput(success=True, path=str(p), message="File written successfully.")
         except Exception as exc:
             return WriteFileOutput(success=False, path=args.path, message=f"Error writing file: {exc}")
 
@@ -161,12 +200,14 @@ class FileSystemToolBox(ToolBox):
         Returns:
             ``ListDirectoryOutput`` with matching entry names.
         """
-        p = Path(args.path)
+        p = self._safe_path(args.path)
+        if p is None:
+            return ListDirectoryOutput(entries=[], path=args.path)
         try:
             entries = [str(e) for e in sorted(p.glob(args.pattern))]
         except Exception:
             entries = []
-        return ListDirectoryOutput(entries=entries, path=str(p.resolve()))
+        return ListDirectoryOutput(entries=entries, path=str(p))
 
     def _search_in_files(self, args: SearchInFilesArgs) -> SearchInFilesOutput:
         """
@@ -178,7 +219,9 @@ class FileSystemToolBox(ToolBox):
         Returns:
             ``SearchInFilesOutput`` with a list of ``{file, line_number, line}`` dicts.
         """
-        root = Path(args.path)
+        root = self._safe_path(args.path)
+        if root is None:
+            return SearchInFilesOutput(matches=[], total=0)
         matches: List[Dict[str, str]] = []
         try:
             compiled = re.compile(args.pattern)
@@ -211,7 +254,9 @@ class FileSystemToolBox(ToolBox):
         Returns:
             ``FindFilesOutput`` with the list of matching file paths.
         """
-        root = Path(args.path)
+        root = self._safe_path(args.path)
+        if root is None:
+            return FindFilesOutput(files=[], total=0)
         files = [str(p) for p in sorted(root.glob(args.glob)) if p.is_file()]
         return FindFilesOutput(files=files, total=len(files))
 
@@ -222,13 +267,25 @@ class FileSystemToolBox(ToolBox):
         Returns:
             List of five ``AgentTool`` objects (read, write, list, search, find).
         """
-        tools = [
+        write_desc = (
+            "Write UTF-8 text content to a file, creating parent directories as needed."
+            if self.config.get("allow_write", True)
+            else "Write UTF-8 text content to a file (currently disabled — allow_write=False)."
+        )
+        return [
             AgentTool(
                 name="read_file",
                 description="Read the UTF-8 text content of a file.",
                 argument_schema=ReadFileArgs,
                 output_schema=ReadFileOutput,
                 tool_call=self._read_file,
+            ),
+            AgentTool(
+                name="write_file",
+                description=write_desc,
+                argument_schema=WriteFileArgs,
+                output_schema=WriteFileOutput,
+                tool_call=self._write_file,
             ),
             AgentTool(
                 name="list_directory",
@@ -252,21 +309,3 @@ class FileSystemToolBox(ToolBox):
                 tool_call=self._find_files,
             ),
         ]
-        if self.config.get("allow_write", True):
-            tools.insert(1, AgentTool(
-                name="write_file",
-                description="Write UTF-8 text content to a file, creating parent directories as needed.",
-                argument_schema=WriteFileArgs,
-                output_schema=WriteFileOutput,
-                tool_call=self._write_file,
-            ))
-        else:
-            # Still register the tool but it will return a disabled message.
-            tools.insert(1, AgentTool(
-                name="write_file",
-                description="Write UTF-8 text content to a file (currently disabled — allow_write=False).",
-                argument_schema=WriteFileArgs,
-                output_schema=WriteFileOutput,
-                tool_call=self._write_file,
-            ))
-        return tools

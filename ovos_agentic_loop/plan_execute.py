@@ -175,6 +175,7 @@ class PlanAndExecuteEngine(AgenticLoopEngine):
             brain: Instantiated ``ChatEngine`` to use for all LLM calls.
         """
         self._brain = brain
+        self._inject_brain_into_toolboxes(brain)
 
     def _load_brain(self) -> Optional[ChatEngine]:
         """

@@ -30,7 +30,9 @@ class ShellToolBox(ToolBox):
     Entry point group: ``opm.agents.toolbox``
 
     Config keys:
-    - ``allow_shell`` (bool, default ``True``): Set to ``False`` to disable execution.
+    - ``allow_shell`` (bool, default ``False``): Must be explicitly set to ``True``
+      to enable execution.  Defaults to ``False`` to prevent unintentional shell
+      access when the toolbox is loaded from a persona config.
     - ``max_timeout`` (int, default ``120``): Maximum timeout in seconds.
     """
 
@@ -42,7 +44,7 @@ class ShellToolBox(ToolBox):
 
         Args:
             config: Plugin configuration dict.  Recognised keys:
-                ``allow_shell`` (bool, default ``True``),
+                ``allow_shell`` (bool, default ``False``),
                 ``max_timeout`` (int, default ``120``).
         """
         self.config: Dict[str, Any] = config or {}
@@ -60,7 +62,7 @@ class ShellToolBox(ToolBox):
         Returns:
             ``RunCommandOutput`` with execution results.
         """
-        if not self.config.get("allow_shell", True):
+        if not self.config.get("allow_shell", False):
             return RunCommandOutput(
                 stdout="",
                 stderr="Shell execution is disabled (allow_shell=False).",
