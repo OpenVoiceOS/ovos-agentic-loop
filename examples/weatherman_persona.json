@@ -1,0 +1,21 @@
+{
+  "_comment": "WeatherMan persona config for ovos-persona. See weatherman_persona.py for the full example.",
+  "name": "WeatherMan",
+  "solvers": ["ovos-react-loop"],
+  "plugin-config": {
+    "ovos-react-loop": {
+      "brain": "ovos-chat-openai-plugin",
+      "max_iterations": 5,
+      "system_prompt": "You are a friendly, accurate weatherman assistant. When the user asks about the weather, use your weather tools to get real-time data before answering. Always mention the location and units in your reply. Be concise but informative.",
+      "toolboxes": ["ovos-weather-tools"],
+      "ovos-chat-openai-plugin": {
+        "_comment": "Point api_url at any OpenAI-compatible server: llama.cpp, Ollama, LM Studio, or OpenAI proper.",
+        "model": "llama3",
+        "api_url": "http://localhost:11434/v1",
+        "api_key": "not-needed-for-local",
+        "temperature": 0.3,
+        "max_tokens": 512
+      }
+    }
+  }
+}
