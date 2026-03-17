@@ -5,7 +5,7 @@
 `ovos-agentic-loop` provides a plugin framework for **agentic (tool-using) LLM loops** within the OVOS ecosystem. It supplies:
 
 1. An abstract base class (`AgenticLoopEngine`) for any agent-loop `ChatEngine` plugin.
-2. A concrete `ReActLoopEngine` / `ReActLoopEnginePlugin` implementing the ReAct (Reason + Act) algorithm.
+2. Four loop engines from agent literature: **ReAct**, **Plan-and-Execute**, **Reflexion**, **Self-Ask**.
 3. Five `ToolBox` plugins: filesystem, shell, web-search, clock, and SKILL.md-backed tools.
 4. `SkillMDLoader` and `SkillMDToolBox` for converting installed `SKILL.md` files into callable tools.
 5. `AgentsMDContextManager` for assembling system prompts from installed `AGENTS.md` files.
@@ -21,8 +21,14 @@ All components integrate with `ovos-plugin-manager` (OPM) via entry points and a
 | Class | File | Entry Point Group | Entry Point ID |
 | :--- | :--- | :--- | :--- |
 | `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | — (abstract base) | — |
-| `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete, not directly registered) | — |
+| `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete) | — |
 | `ReActLoopEnginePlugin` | `ovos_agentic_loop/factory.py:8` | `opm.agents.chat` | `ovos-react-loop` |
+| `PlanAndExecuteEngine` | `ovos_agentic_loop/plan_execute.py:108` | — (concrete) | — |
+| `PlanAndExecuteEnginePlugin` | `ovos_agentic_loop/factory.py:27` | `opm.agents.chat` | `ovos-plan-execute-loop` |
+| `ReflexionEngine` | `ovos_agentic_loop/reflexion.py:82` | — (concrete) | — |
+| `ReflexionEnginePlugin` | `ovos_agentic_loop/factory.py:36` | `opm.agents.chat` | `ovos-reflexion-loop` |
+| `SelfAskEngine` | `ovos_agentic_loop/self_ask.py:112` | — (concrete) | — |
+| `SelfAskEnginePlugin` | `ovos_agentic_loop/factory.py:45` | `opm.agents.chat` | `ovos-self-ask-loop` |
 | `SkillMDLoader` | `ovos_agentic_loop/skills/loader.py:143` | — | — |
 | `SkillMDToolBox` | `ovos_agentic_loop/skills/toolbox.py:48` | `opm.agents.toolbox` | `ovos-skill-md-toolbox` |
 | `FileSystemToolBox` | `ovos_agentic_loop/tools/filesystem.py:85` | `opm.agents.toolbox` | `ovos-filesystem-tools` |
@@ -161,6 +167,7 @@ Persona config snippet (OVOS JSON config):
 
 ## See Also
 
+- `docs/loop-architectures.md` — All four loop engines: rationale, algorithm, when to use, comparison table
 - `docs/react-loop.md` — ReAct algorithm deep dive with all source citations
 - `docs/toolboxes.md` — Per-toolbox reference (args, outputs, config)
 - `docs/skill-md.md` — SKILL.md format spec, discovery, and authoring guide
