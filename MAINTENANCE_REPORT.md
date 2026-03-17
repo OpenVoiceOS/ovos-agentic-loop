@@ -1,5 +1,18 @@
 # MAINTENANCE_REPORT — ovos-agentic-loop
 
+## 2026-03-17 — P0/P1 security and correctness fixes
+
+- **AI Model**: claude-sonnet-4-6
+- **Actions Taken**:
+  - Fixed `AgentsMDContextManager` ABC compliance (per-session history, correct method signatures)
+  - Fixed `_extract_json_object` balanced-brace parser replacing broken non-greedy regex in `react.py`
+  - Flipped `ShellToolBox.allow_shell` default to `False` (secure by default)
+  - Added `root_path` sandbox + `_safe_path()` path-traversal prevention in `FileSystemToolBox`
+  - Added `_inject_brain_into_toolboxes()` to `base.py`; wired into all 7 loop engines
+  - Replaced silent `except: pass` with `LOG.warning()` in `base.py`
+  - Updated all affected tests; 149 tests, 88% coverage
+- **Oversight**: Code review findings by human; fixes implemented by AI
+
 ## 2026-03-17 — Initial implementation
 
 - **AI Model**: claude-sonnet-4-6
