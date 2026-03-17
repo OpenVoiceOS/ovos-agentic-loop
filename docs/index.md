@@ -5,7 +5,7 @@
 `ovos-agentic-loop` provides a plugin framework for **agentic (tool-using) LLM loops** within the OVOS ecosystem. It supplies:
 
 1. An abstract base class (`AgenticLoopEngine`) for any agent-loop `ChatEngine` plugin.
-2. Four loop engines from agent literature: **ReAct**, **Plan-and-Execute**, **Reflexion**, **Self-Ask**.
+2. Seven loop engines from agent literature: **Chain-of-Thought**, **ReAct**, **Plan-and-Execute**, **Reflexion**, **Self-Ask**, **CRITIC**, **Tree-of-Thoughts**.
 3. Five `ToolBox` plugins: filesystem, shell, web-search, clock, and SKILL.md-backed tools.
 4. `SkillMDLoader` and `SkillMDToolBox` for converting installed `SKILL.md` files into callable tools.
 5. `AgentsMDContextManager` for assembling system prompts from installed `AGENTS.md` files.
@@ -29,6 +29,12 @@ All components integrate with `ovos-plugin-manager` (OPM) via entry points and a
 | `ReflexionEnginePlugin` | `ovos_agentic_loop/factory.py:36` | `opm.agents.chat` | `ovos-reflexion-loop` |
 | `SelfAskEngine` | `ovos_agentic_loop/self_ask.py:112` | — (concrete) | — |
 | `SelfAskEnginePlugin` | `ovos_agentic_loop/factory.py:45` | `opm.agents.chat` | `ovos-self-ask-loop` |
+| `ChainOfThoughtEngine` | `ovos_agentic_loop/chain_of_thought.py:68` | — (concrete) | — |
+| `ChainOfThoughtEnginePlugin` | `ovos_agentic_loop/factory.py:54` | `opm.agents.chat` | `ovos-chain-of-thought-loop` |
+| `CRITICEngine` | `ovos_agentic_loop/critic.py:92` | — (concrete) | — |
+| `CRITICEnginePlugin` | `ovos_agentic_loop/factory.py:63` | `opm.agents.chat` | `ovos-critic-loop` |
+| `TreeOfThoughtsEngine` | `ovos_agentic_loop/tree_of_thoughts.py:108` | — (concrete) | — |
+| `TreeOfThoughtsEnginePlugin` | `ovos_agentic_loop/factory.py:72` | `opm.agents.chat` | `ovos-tree-of-thoughts-loop` |
 | `SkillMDLoader` | `ovos_agentic_loop/skills/loader.py:143` | — | — |
 | `SkillMDToolBox` | `ovos_agentic_loop/skills/toolbox.py:48` | `opm.agents.toolbox` | `ovos-skill-md-toolbox` |
 | `FileSystemToolBox` | `ovos_agentic_loop/tools/filesystem.py:85` | `opm.agents.toolbox` | `ovos-filesystem-tools` |

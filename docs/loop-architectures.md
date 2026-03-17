@@ -1,6 +1,6 @@
 # Agent Loop Architectures
 
-`ovos-agentic-loop` ships four distinct loop strategies. Each is a concrete
+`ovos-agentic-loop` ships seven distinct loop strategies. Each is a concrete
 `AgenticLoopEngine` (`ovos_agentic_loop/base.py:8`) and is registered as an
 `opm.agents.chat` entry point so `ovos-persona` can load it by ID.
 
@@ -10,10 +10,13 @@
 
 | Use-case signal | Recommended loop |
 | :--- | :--- |
+| No tools, pure reasoning / arithmetic / logic | **Chain-of-Thought** |
 | Single-turn tool use, general assistant | **ReAct** |
-| Multi-step task with distinct, parallelisable sub-goals | **Plan-and-Execute** |
+| Multi-step task with distinct, sequenced sub-goals | **Plan-and-Execute** |
 | Correctness matters; agent may fail on first attempt | **Reflexion** |
 | Multi-hop knowledge question (chain of facts) | **Self-Ask** |
+| Answer contains verifiable factual claims | **CRITIC** |
+| Multiple solution strategies exist; want best one | **Tree-of-Thoughts** |
 
 The loops are not mutually exclusive.  Reflexion *wraps* ReAct internally, so
 it inherits every ReAct capability while adding the self-correction outer loop.
@@ -264,24 +267,215 @@ multiple downstream questions without the LLM re-asking.
 
 ---
 
+## Chain-of-Thought — Structured Step-by-Step Reasoning
+
+**Entry point:** `ovos-chain-of-thought-loop`
+**Class:** `ChainOfThoughtEngine` — `ovos_agentic_loop/chain_of_thought.py:68`
+**Papers:** Wei et al., 2022 — *Chain-of-Thought Prompting Elicits Reasoning in
+Large Language Models*; Kojima et al., 2022 — *Large Language Models are
+Zero-Shot Reasoners* ("Let's think step by step")
+
+### How it works
+
+A single LLM call with a system prompt instructing the model to reason step by
+step before committing to a final answer.  The ``FINAL ANSWER:`` marker is
+extracted from the structured response.
+
+```
+Step 1: 17 × 6 = 102
+Step 2: 102 + 14 = 116
+FINAL ANSWER: 116
+```
+
+No tools, no loop, no iteration.
+
+### Loop logic (`chain_of_thought.py:118–148`)
+
+```
+messages = [cot_system_prompt + optional_extra_prompt] + conversation_history
+response = brain.continue_chat(messages)
+return extract_after("FINAL ANSWER:", response) or response
+```
+
+### When to use
+
+- **Arithmetic and algebra** — multi-step calculation where intermediate
+  values matter.
+- **Logic puzzles and constraint solving** — tasks that require eliminating
+  cases.
+- **Multi-step instruction following** — decomposing "how to do X" questions.
+- Any task where **no external information** is needed; adding tools would
+  add latency with no benefit.
+- As a cheap **first pass** before escalating to a more expensive loop.
+
+### Strengths and limits
+
+**Strengths:** Exactly one LLM call, lowest latency and cost of all seven
+loops.  Readable reasoning trace in the response.  Zero dependencies on tools
+or external services.
+**Limits:** Hallucination-prone on factual questions — the model reasons from
+its training data only.  Does not retry or self-correct.
+
+---
+
+## CRITIC — Tool-Assisted Self-Verification and Revision
+
+**Entry point:** `ovos-critic-loop`
+**Class:** `CRITICEngine` — `ovos_agentic_loop/critic.py:92`
+**Paper:** Gou et al., 2023 — *CRITIC: Large Language Models Can Self-Correct
+with Tool-Interactive Critiquing*
+
+### How it works
+
+Three phases: **draft → critique → revise**.
+
+1. **Draft**: the brain generates an initial answer.
+2. **Critique**: a separate LLM call identifies verifiable claims in the draft
+   and emits ``CLAIM / TOOL / TOOL INPUT`` blocks for each.
+3. **Verify + Revise**: each claim is checked via a tool call; observations
+   are used to rewrite the answer.  Repeats up to ``max_critique_rounds``.
+
+```
+Draft:    "The Eiffel Tower was built in 1887."
+Critique: CLAIM: Built in 1887
+          TOOL: web_search
+          TOOL INPUT: Eiffel Tower construction year
+Verify:   → "Construction 1887–1889; opened 1889."
+Revised:  "The Eiffel Tower was built between 1887 and 1889."
+```
+
+If the brain emits ``VERIFIED: all claims are correct`` the draft is accepted
+without revision.
+
+### Loop logic (`critic.py:198–260`)
+
+```
+draft = brain(messages)
+if no tools: return draft
+
+for _ in range(max_critique_rounds):
+    critique = brain("critique: " + draft)
+    if VERIFIED in critique: break
+    blocks = parse_claim_tool_blocks(critique)
+    if not blocks: break
+    verifications = [call_tool(b.tool, b.tool_input) for b in blocks]
+    draft = brain("revise with: " + verifications)
+return draft
+```
+
+### When to use
+
+- **Factual Q&A** where the answer may contain specific numbers, dates,
+  names, or statistics that can be checked with a search tool.
+- Pipelines where **accuracy is more important than latency** and a single
+  draft pass is not trustworthy enough.
+- Tasks where Reflexion would be overkill (full re-runs) but a lightweight
+  fact-check pass is sufficient.
+
+### Strengths and limits
+
+**Strengths:** Targets errors precisely at the claim level — only
+incorrect facts are revised, the rest of the answer is preserved.  More
+efficient than Reflexion for factual corrections (no full re-run).
+**Limits:** Requires a capable LLM to produce well-formed ``CLAIM/TOOL/TOOL
+INPUT`` blocks reliably.  Works poorly on subjective or opinion questions
+where there is nothing to verify.  With no tools registered, falls back to
+draft-only (equivalent to a simple brain call).
+
+---
+
+## Tree-of-Thoughts — Beam Search over Reasoning Paths
+
+**Entry point:** `ovos-tree-of-thoughts-loop`
+**Class:** `TreeOfThoughtsEngine` — `ovos_agentic_loop/tree_of_thoughts.py:108`
+**Paper:** Yao et al., 2023 — *Tree of Thoughts: Deliberate Problem Solving
+with Large Language Models*
+
+### How it works
+
+At each depth level the engine generates ``n_branches`` independent candidate
+reasoning steps, scores each one with a separate evaluator LLM call, and
+keeps only the top ``beam_width`` branches for the next level (beam search).
+
+```
+Depth 0 (root):
+  Branch A: "Try approach X …"   score 4
+  Branch B: "Try approach Y …"   score 9  ← kept (beam_width=1)
+  Branch C: "Try approach Z …"   score 2
+
+Depth 1 (from B):
+  Branch B1: "Refine Y …"   score 7  ← kept
+  Branch B2: "Try Z next …" score 3
+  Branch B3: ANSWER: 42     → return immediately
+```
+
+Any branch that produces ``ANSWER:`` in a generated thought terminates the
+search immediately.  If ``max_depth`` is reached without a natural answer,
+the highest-scored surviving branch is asked to produce a final answer.
+
+### Loop logic (`tree_of_thoughts.py:211–264`)
+
+```
+branches = [_Branch()]  # single empty root
+
+for depth in range(max_depth):
+    candidates = []
+    for branch in branches:
+        for _ in range(n_branches):
+            thought = generate(problem, branch)
+            if ANSWER in thought: return answer
+            score = evaluate(problem, branch, thought)
+            candidates.append((branch + thought, score))
+
+    # keep top beam_width by score
+    branches = sorted(candidates, key=score)[:beam_width]
+
+return force_answer(best_branch)
+```
+
+LLM calls per run: ``depth × n_branches × 2`` (generator + evaluator per
+branch per level) + 1 optional force_answer.
+
+### When to use
+
+- Problems with **multiple competing solution strategies** where it is not
+  clear upfront which approach will work (combinatorics, coding, planning).
+- Tasks where **early commitment** (as in ReAct) leads to dead ends — ToT
+  can explore and abandon a branch before committing to it.
+- **Creative tasks** (writing, brainstorming) where you want the LLM to
+  generate diverse options and keep the best.
+
+### Strengths and limits
+
+**Strengths:** Can recover from locally-plausible but globally-poor choices
+by keeping competing branches alive.  The evaluator provides an explicit
+quality signal at each step.
+**Limits:** Most expensive of the seven loops — LLM call count grows as
+``depth × n_branches × 2``.  The evaluator itself can be biased or wrong.
+Only BFS/beam-search is implemented; DFS with backtracking is not (context
+window cost).
+
+---
+
 ## Comparison table
 
-| Property | ReAct | Plan-and-Execute | Reflexion | Self-Ask |
-| :--- | :---: | :---: | :---: | :---: |
-| LLM calls per turn (min) | 1–N | 3+N | 2–(3+N)×E | 1–N |
-| Supports multi-arg tools | ✓ | ✓ | ✓ | partial |
-| Can self-correct | ✗ | ✗ | ✓ | ✗ |
-| Produces auditable plan | ✗ | ✓ | ✗ | ✓ (trace) |
-| Works without tools | ✓ | ✓ | ✓ | ✓ |
-| Best for | general | multi-step workflows | correctness | multi-hop QA |
+| Property | CoT | ReAct | Plan+Exec | Reflexion | Self-Ask | CRITIC | ToT |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| LLM calls (min) | 1 | 1–N | 3+N | 2–(3+N)×E | 1–N | 2 | d×b×2 |
+| Supports multi-arg tools | ✗ | ✓ | ✓ | ✓ | partial | partial | ✗ |
+| Can self-correct | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | partial |
+| Produces auditable plan/trace | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| Works without tools | ✓ | ✓ | ✓ | ✓ | ✓ | ✓* | ✓ |
+| Best for | reasoning | general | multi-step | correctness | multi-hop QA | factual Q&A | hard problems |
 
-*E = episodes; N = tool calls per episode/step.*
+*CRITIC without tools skips critique phases and returns the draft directly.*
+*CoT = Chain-of-Thought; E = episodes; N = tool calls; d = depth; b = n_branches.*
 
 ---
 
 ## Composing loops
 
-All four engines are standard `ChatEngine` / `AgenticLoopEngine` subclasses.
+All seven engines are standard `ChatEngine` / `AgenticLoopEngine` subclasses.
 You can nest them or wrap them in any persona config:
 
 ```json
