@@ -1,88 +1,168 @@
-# ovos-agentic-loop
+# ovos-agentic-loop — Architecture Overview
 
-Standalone `ChatEngine` plugins for OVOS that implement internal agent loops.
-The key architectural insight: **SKILL.md and AGENTS.md are dual-purpose documents** — they serve Claude Code at dev-time and runtime LLM agents as tool descriptors and behavioral constraints.
+## What this package does
 
-## Components
+`ovos-agentic-loop` provides a plugin framework for **agentic (tool-using) LLM loops** within the OVOS ecosystem. It supplies:
 
-| Class | Module | OPM Entry Point |
-|---|---|---|
-| `AgenticLoopEngine` | `ovos_agentic_loop.base` | `opm.agents.chat` |
-| `ReActLoopEngine` | `ovos_agentic_loop.react` | `opm.agents.chat` |
-| `SkillMDToolBox` | `ovos_agentic_loop.skills.toolbox` | `opm.agents.toolbox` |
-| `SkillMDLoader` | `ovos_agentic_loop.skills.loader` | — |
-| `AgentsMDContextManager` | `ovos_agentic_loop.context.agents_md` | `opm.agents.memory` |
-| `FileSystemToolBox` | `ovos_agentic_loop.tools.filesystem` | `opm.agents.toolbox` |
-| `ShellToolBox` | `ovos_agentic_loop.tools.shell` | `opm.agents.toolbox` |
-| `WebSearchToolBox` | `ovos_agentic_loop.tools.web` | `opm.agents.toolbox` |
-| `ClockToolBox` | `ovos_agentic_loop.tools.clock` | `opm.agents.toolbox` |
+1. An abstract base class (`AgenticLoopEngine`) for any agent-loop `ChatEngine` plugin.
+2. A concrete `ReActLoopEngine` / `ReActLoopEnginePlugin` implementing the ReAct (Reason + Act) algorithm.
+3. Five `ToolBox` plugins: filesystem, shell, web-search, clock, and SKILL.md-backed tools.
+4. `SkillMDLoader` and `SkillMDToolBox` for converting installed `SKILL.md` files into callable tools.
+5. `AgentsMDContextManager` for assembling system prompts from installed `AGENTS.md` files.
 
-## Architecture
+All components integrate with `ovos-plugin-manager` (OPM) via entry points and are discovered at runtime by `ovos-persona` or any OPM consumer.
 
+**Key architectural insight**: SKILL.md and AGENTS.md are dual-purpose documents — they govern Claude Code at dev-time and serve as tool descriptors / behavioural constraints for runtime LLM agents.
+
+---
+
+## Component Table
+
+| Class | File | Entry Point Group | Entry Point ID |
+| :--- | :--- | :--- | :--- |
+| `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | — (abstract base) | — |
+| `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete, not directly registered) | — |
+| `ReActLoopEnginePlugin` | `ovos_agentic_loop/factory.py:8` | `opm.agents.chat` | `ovos-react-loop` |
+| `SkillMDLoader` | `ovos_agentic_loop/skills/loader.py:143` | — | — |
+| `SkillMDToolBox` | `ovos_agentic_loop/skills/toolbox.py:48` | `opm.agents.toolbox` | `ovos-skill-md-toolbox` |
+| `FileSystemToolBox` | `ovos_agentic_loop/tools/filesystem.py:85` | `opm.agents.toolbox` | `ovos-filesystem-tools` |
+| `ShellToolBox` | `ovos_agentic_loop/tools/shell.py:26` | `opm.agents.toolbox` | `ovos-shell-tools` |
+| `WebSearchToolBox` | `ovos_agentic_loop/tools/web.py:25` | `opm.agents.toolbox` | `ovos-web-search-tools` |
+| `ClockToolBox` | `ovos_agentic_loop/tools/clock.py:22` | `opm.agents.toolbox` | `ovos-clock-tools` |
+| `AgentsMDContextManager` | `ovos_agentic_loop/context/agents_md.py:67` | `opm.agents.memory` | `ovos-agents-md-context-plugin` |
+
+---
+
+## OPM Plugin Discovery
+
+Entry points in `pyproject.toml` (lines 26–37):
+
+```toml
+[project.entry-points."opm.agents.chat"]
+ovos-react-loop = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
+
+[project.entry-points."opm.agents.toolbox"]
+ovos-skill-md-toolbox   = "ovos_agentic_loop.skills.toolbox:SkillMDToolBox"
+ovos-filesystem-tools   = "ovos_agentic_loop.tools.filesystem:FileSystemToolBox"
+ovos-shell-tools        = "ovos_agentic_loop.tools.shell:ShellToolBox"
+ovos-web-search-tools   = "ovos_agentic_loop.tools.web:WebSearchToolBox"
+ovos-clock-tools        = "ovos_agentic_loop.tools.clock:ClockToolBox"
+
+[project.entry-points."opm.agents.memory"]
+ovos-agents-md-context-plugin = "ovos_agentic_loop.context.agents_md:AgentsMDContextManager"
 ```
-SKILL.md frontmatter     →  AgentTool.name + AgentTool.description
-SKILL.md body (markdown) →  sub-LLM system prompt for tool execution
-AGENTS.md sections       →  AgentsMDContextManager system prompt
+
+OPM uses `importlib.metadata.entry_points()` to discover classes at runtime. `opm.agents.chat` maps to `find_chat_plugins()` / `load_chat_plugin()`. `opm.agents.toolbox` maps to `find_toolbox_plugin()` / `load_toolbox_plugin()`.
+
+---
+
+## Integration with ovos-persona
+
+`ovos-persona` (`ovos_persona/solvers.py:22`) loads all `ChatEngine` plugins via `find_chat_plugins()`. `ReActLoopEnginePlugin` is a `ChatEngine` subclass (via `AgenticLoopEngine → ChatEngine`), so `ovos-persona` treats it identically to any LLM plugin — it calls `continue_chat(messages, session_id, lang, units)` and receives one `AgentMessage` back.
+
+All loop mechanics are **opaque to the caller**: tool selection, execution, observation injection, and iteration happen inside `ReActLoopEngine.continue_chat` — `ovos_agentic_loop/react.py:198`.
+
+`ToolBox` plugins are loaded by `ReActLoopEngine._load_toolboxes_from_config` — `ovos_agentic_loop/base.py:50` — using `load_toolbox_plugin()` from OPM. They can also be injected directly via `AgenticLoopEngine.load_toolboxes()` — `ovos_agentic_loop/base.py:38`.
+
+`AgentsMDContextManager` is an `AgentContextManager` subclass. It can be loaded by any persona service that supports the `opm.agents.memory` group and calls `build_conversation_context(utterance, lang)`.
+
+---
+
+## Message Bus Event Flow (ToolBox)
+
+`ToolBox` (OPM `agent_tools.py:56`) registers two bus handlers when `bind(bus)` is called:
+
+| Event | Direction | Payload |
+| :--- | :--- | :--- |
+| `ovos.persona.tools.discover` | → ToolBox | (empty) |
+| `ovos.persona.tools.discover` (response) | ToolBox → | `{tools: [...schemas...], toolbox_id: "..."}` |
+| `ovos.persona.tools.<toolbox_id>.call` | → ToolBox | `{name: "tool_name", kwargs: {...}}` |
+| `ovos.persona.tools.<toolbox_id>.call` (response) | ToolBox → | `{result: {...model_dump...}, toolbox_id}` or `{error: "..."}` |
+
+`ReActLoopEngine` calls tools **directly** (not over the bus) via `tb.call_tool(name, args)` — `ovos_agentic_loop/react.py:175`. Bus dispatch is a capability of the OPM `ToolBox` base class available to other consumers.
+
+---
+
+## Configuration Reference
+
+### ReActLoopEnginePlugin (`ovos-react-loop`)
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `brain` | str | `""` | OPM plugin ID of the inner `ChatEngine` for LLM calls |
+| `toolboxes` | List[str] | `[]` | OPM plugin IDs of `ToolBox` plugins to load |
+| `max_iterations` | int | `10` | Maximum tool-call cycles per `continue_chat` invocation |
+| `<brain-plugin-id>` | dict | `{}` | Config dict forwarded to the brain plugin on load |
+| `<toolbox-plugin-id>` | dict | `{}` | Config dict forwarded to each toolbox plugin on load |
+
+### FileSystemToolBox (`ovos-filesystem-tools`)
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `allow_write` | bool | `True` | If `False`, `write_file` returns `success=False` without touching disk |
+
+### ShellToolBox (`ovos-shell-tools`)
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `allow_shell` | bool | `True` | If `False`, `run_command` returns an error without executing |
+| `max_timeout` | int | `120` | Upper bound (seconds) for any requested command timeout |
+
+### SkillMDToolBox (`ovos-skill-md-toolbox`)
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `extra_skill_md_paths` | List[str] | `[]` | Additional SKILL.md file paths beyond auto-discovery |
+
+### AgentsMDContextManager (`ovos-agents-md-context-plugin`)
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `agents_md_sources` | List[str] | `["auto"]` | Paths to AGENTS.md files, or `["auto"]` for package-data discovery |
+| `include_sections` | List[str] | `[]` | Heading substrings to include (empty = all sections) |
+| `system_prompt_prefix` | str | `""` | Text prepended before assembled AGENTS.md content |
+
+---
+
+## Quick-Start Example
+
+```python
+from ovos_agentic_loop.react import ReActLoopEngine
+from ovos_agentic_loop.tools import ClockToolBox, WebSearchToolBox
+from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
+
+# Create engine; brain must be a pre-loaded ChatEngine instance or loadable by OPM.
+engine = ReActLoopEngine(config={"max_iterations": 5})
+engine.set_brain(my_chat_engine)  # inject an instantiated ChatEngine
+engine.load_toolboxes([ClockToolBox(), WebSearchToolBox()])
+
+messages = [AgentMessage(role=MessageRole.USER, content="What time is it in Tokyo?")]
+response = engine.continue_chat(messages)
+print(response.content)
 ```
 
-### AgenticLoopEngine (`base.py`)
-
-Abstract `ChatEngine` subclass. Adds toolbox registration (`load_toolboxes`) and config-driven toolbox loading (`_load_toolboxes_from_config`).  All loop mechanics are encapsulated — callers see a plain `ChatEngine`.
-
-### ReActLoopEngine (`react.py`)
-
-Concrete ReAct (Reason + Act) implementation:
-1. Prepend ReAct system prompt with tool schemas.
-2. Brain LLM generates Thought + Action or `FINAL_ANSWER:`.
-3. Execute tool → append Observation → repeat.
-4. Stop on `FINAL_ANSWER:` or `max_iterations`.
-
-Config: `brain` (ChatEngine plugin ID), `toolboxes` (list of ToolBox IDs), `max_iterations` (default 10).
-
-### SkillMDToolBox (`skills/toolbox.py`)
-
-`ToolBox` plugin exposing each installed SKILL.md as an `AgentTool`. Tool execution calls a sub-`ChatEngine` with the SKILL.md body as system prompt and the agent's `task` as the user message.
-
-### SkillMDLoader (`skills/loader.py`)
-
-Discovers SKILL.md files via:
-1. `opm.agents.skill_md` entry-point group (explicit, zero-ambiguity).
-2. Installed package data scan — walks all distributions for files named `SKILL.md`.
-
-### Standard Developer ToolBoxes (`tools/`)
-
-Four concrete `ToolBox` plugins for use in developer agents:
-
-| ToolBox | Entry Point | Tools |
-|---|---|---|
-| `FileSystemToolBox` | `ovos-filesystem-tools` | `read_file`, `write_file`, `list_directory`, `search_in_files`, `find_files` |
-| `ShellToolBox` | `ovos-shell-tools` | `run_command` |
-| `WebSearchToolBox` | `ovos-web-search-tools` | `web_search` (DuckDuckGo, requires `ovos-agentic-loop[web]`) |
-| `ClockToolBox` | `ovos-clock-tools` | `get_current_datetime` |
-
-Safety flags: `FileSystemToolBox` respects `allow_write` (default `True`); `ShellToolBox` respects `allow_shell` (default `True`) and `max_timeout` (default 120 s).
-
-### AgentsMDContextManager (`context/agents_md.py`)
-
-`AgentContextManager` that loads AGENTS.md files, filters sections by heading, and assembles the agent system prompt. Config: `agents_md_sources` (`["auto"]` or path list), `include_sections`, `system_prompt_prefix`.
-
-## Persona config example
+Persona config snippet (OVOS JSON config):
 
 ```json
 {
   "name": "OVOSDeveloperAgent",
   "solvers": ["ovos-react-loop"],
-  "memory_module": "ovos-agents-md-context-plugin",
   "plugin-config": {
     "ovos-react-loop": {
-      "brain": "ovos-claude-plugin",
-      "toolboxes": ["ovos-skill-md-toolbox"]
-    },
-    "ovos-agents-md-context-plugin": {
-      "agents_md_sources": ["auto"],
-      "include_sections": ["Universal Rules", "OpenVoiceOS Workspace"],
-      "system_prompt_prefix": "You are an OVOS developer assistant."
+      "brain": "ovos-llm-plugin",
+      "max_iterations": 5,
+      "toolboxes": ["ovos-clock-tools", "ovos-web-search-tools"]
     }
   }
 }
 ```
+
+---
+
+## See Also
+
+- `docs/react-loop.md` — ReAct algorithm deep dive with all source citations
+- `docs/toolboxes.md` — Per-toolbox reference (args, outputs, config)
+- `docs/skill-md.md` — SKILL.md format spec, discovery, and authoring guide
+- `docs/agents-md.md` — AGENTS.md context manager internals
+- `docs/opm-integration.md` — OPM entry point integration and plugin registration guide
