@@ -21,12 +21,17 @@ Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
+web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
 ovos-react-loop = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
 
 [project.entry-points."opm.agents.toolbox"]
-ovos-skill-md-toolbox = "ovos_agentic_loop.skills.toolbox:SkillMDToolBox"
+ovos-skill-md-toolbox   = "ovos_agentic_loop.skills.toolbox:SkillMDToolBox"
+ovos-filesystem-tools   = "ovos_agentic_loop.tools.filesystem:FileSystemToolBox"
+ovos-shell-tools        = "ovos_agentic_loop.tools.shell:ShellToolBox"
+ovos-web-search-tools   = "ovos_agentic_loop.tools.web:WebSearchToolBox"
+ovos-clock-tools        = "ovos_agentic_loop.tools.clock:ClockToolBox"
 
 [project.entry-points."opm.agents.memory"]
 ovos-agents-md-context-plugin = "ovos_agentic_loop.context.agents_md:AgentsMDContextManager"

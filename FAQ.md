@@ -52,3 +52,15 @@ A: Call `toolbox.set_brain(brain_instance)` or let the owning `ReActLoopEngine` 
 
 **Q: What does max_iterations do in ReActLoopEngine?**
 A: Limits tool-call cycles. When reached, the brain is asked for a final answer with a prompt. Default: 10.
+
+**Q: What standard toolboxes are included besides SkillMDToolBox?**
+A: Four direct-execution toolboxes in `ovos_agentic_loop/tools/`: `FileSystemToolBox` (read/write/list/search/find files), `ShellToolBox` (run shell commands), `WebSearchToolBox` (DuckDuckGo search), `ClockToolBox` (current date/time).
+
+**Q: How do I enable web search?**
+A: Install the optional dependency: `pip install 'ovos-agentic-loop[web]'` (adds `duckduckgo-search>=6.0`). The toolbox is importable without it but returns an install-instructions error.
+
+**Q: How do I make a FileSystemToolBox read-only?**
+A: Pass `config={"allow_write": False}`. The `write_file` tool will return `success=False` without touching the filesystem.
+
+**Q: How do I disable shell execution in ShellToolBox?**
+A: Pass `config={"allow_shell": False}`. Set `max_timeout` (seconds) to cap any requested timeout above that value.

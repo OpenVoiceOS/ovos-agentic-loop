@@ -12,6 +12,10 @@ The key architectural insight: **SKILL.md and AGENTS.md are dual-purpose documen
 | `SkillMDToolBox` | `ovos_agentic_loop.skills.toolbox` | `opm.agents.toolbox` |
 | `SkillMDLoader` | `ovos_agentic_loop.skills.loader` | — |
 | `AgentsMDContextManager` | `ovos_agentic_loop.context.agents_md` | `opm.agents.memory` |
+| `FileSystemToolBox` | `ovos_agentic_loop.tools.filesystem` | `opm.agents.toolbox` |
+| `ShellToolBox` | `ovos_agentic_loop.tools.shell` | `opm.agents.toolbox` |
+| `WebSearchToolBox` | `ovos_agentic_loop.tools.web` | `opm.agents.toolbox` |
+| `ClockToolBox` | `ovos_agentic_loop.tools.clock` | `opm.agents.toolbox` |
 
 ## Architecture
 
@@ -44,6 +48,19 @@ Config: `brain` (ChatEngine plugin ID), `toolboxes` (list of ToolBox IDs), `max_
 Discovers SKILL.md files via:
 1. `opm.agents.skill_md` entry-point group (explicit, zero-ambiguity).
 2. Installed package data scan — walks all distributions for files named `SKILL.md`.
+
+### Standard Developer ToolBoxes (`tools/`)
+
+Four concrete `ToolBox` plugins for use in developer agents:
+
+| ToolBox | Entry Point | Tools |
+|---|---|---|
+| `FileSystemToolBox` | `ovos-filesystem-tools` | `read_file`, `write_file`, `list_directory`, `search_in_files`, `find_files` |
+| `ShellToolBox` | `ovos-shell-tools` | `run_command` |
+| `WebSearchToolBox` | `ovos-web-search-tools` | `web_search` (DuckDuckGo, requires `ovos-agentic-loop[web]`) |
+| `ClockToolBox` | `ovos-clock-tools` | `get_current_datetime` |
+
+Safety flags: `FileSystemToolBox` respects `allow_write` (default `True`); `ShellToolBox` respects `allow_shell` (default `True`) and `max_timeout` (default 120 s).
 
 ### AgentsMDContextManager (`context/agents_md.py`)
 
