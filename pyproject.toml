@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovos-agentic-loop"
+dynamic = ["version"]
+description = "AgenticLoopEngine base and ReAct implementation for OVOS, with SKILL.md and AGENTS.md runtime consumption"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{name = "OpenVoiceOS", email = "openvoiceos@gmail.com"}]
+requires-python = ">=3.10"
+dependencies = [
+    "ovos-plugin-manager>=0.1.0,<3.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
+Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+
+[project.entry-points."opm.agents.chat"]
+ovos-react-loop = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
+
+[project.entry-points."opm.agents.toolbox"]
+ovos-skill-md-toolbox = "ovos_agentic_loop.skills.toolbox:SkillMDToolBox"
+
+[project.entry-points."opm.agents.memory"]
+ovos-agents-md-context-plugin = "ovos_agentic_loop.context.agents_md:AgentsMDContextManager"
+
+[tool.setuptools.dynamic]
+version = {attr = "ovos_agentic_loop.version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ovos_agentic_loop*"]
