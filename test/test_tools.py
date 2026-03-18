@@ -173,6 +173,40 @@ class TestShellToolBox:
         assert result.success is False
         assert "disabled" in result.stderr.lower()
 
+    def test_allowed_commands_permits_matching_prefix(self) -> None:
+        """run_command executes when command matches an allowed prefix."""
+        box = ShellToolBox(config={"allow_shell": True, "allowed_commands": ["echo", "ls"]})
+        result = box.call_tool("run_command", {"command": "echo hi"})
+        assert result.success is True
+        assert "hi" in result.stdout
+
+    def test_allowed_commands_blocks_non_matching(self) -> None:
+        """run_command is rejected when command does not match any allowed prefix."""
+        box = ShellToolBox(config={"allow_shell": True, "allowed_commands": ["ls", "git"]})
+        result = box.call_tool("run_command", {"command": "rm -rf /"})
+        assert result.success is False
+        assert "not permitted" in result.stderr.lower()
+
+    def test_allowed_commands_empty_list_allows_all(self) -> None:
+        """An empty allowed_commands list imposes no restrictions."""
+        box = ShellToolBox(config={"allow_shell": True, "allowed_commands": []})
+        result = box.call_tool("run_command", {"command": "echo ok"})
+        assert result.success is True
+
+    def test_allowed_commands_exact_first_word_match(self) -> None:
+        """Only the first word of the command is tested against allowed prefixes."""
+        box = ShellToolBox(config={"allow_shell": True, "allowed_commands": ["git"]})
+        result = box.call_tool("run_command", {"command": "git status"})
+        assert result.success is True
+
+    def test_allowed_commands_blocked_has_priority_below_allow_shell(self) -> None:
+        """allowed_commands check only runs after allow_shell gate passes."""
+        box = ShellToolBox(config={"allow_shell": False, "allowed_commands": ["echo"]})
+        result = box.call_tool("run_command", {"command": "echo test"})
+        # allow_shell=False still blocks, regardless of allowed_commands.
+        assert result.success is False
+        assert "disabled" in result.stderr.lower()
+
     def test_discover_tools_returns_one(self) -> None:
         """discover_tools returns exactly one tool."""
         box = ShellToolBox()

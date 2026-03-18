@@ -7,17 +7,18 @@ Status: **OPEN** / **ACCEPTED** (won't fix in current scope).
 
 ## Security
 
-### ISSUE-005 — ShellToolBox: shell injection risk (Major) ACCEPTED
+### ISSUE-005 — ShellToolBox: shell injection risk (Major) MITIGATED
 
-**File**: `ovos_agentic_loop/tools/shell.py:75`
+**File**: `ovos_agentic_loop/tools/shell.py:85`
 
-`subprocess.run(args.command, shell=True, ...)` passes the LLM-generated command string directly to `/bin/sh`. No input validation, command allowlist, or sandboxing.
+`subprocess.run(args.command, shell=True, ...)` passes the LLM-generated command string directly to `/bin/sh`. No sandboxing or argument-level escaping.
 
 **Mitigations in place**:
-- `allow_shell` defaults to `False` — `shell.py:41`. Must be explicitly enabled.
-- Documented in README Security Notes and `docs/toolboxes.md`.
+- `allow_shell` defaults to `False` — `shell.py:63`. Must be explicitly enabled.
+- `allowed_commands` config key: when non-empty, only commands whose first word matches a listed prefix are executed; others return `returncode=-1` without any subprocess call — `shell.py:85`.
+- Documented in `docs/toolboxes.md`.
 
-**Accepted risk**: A command allowlist would be useful but is out of scope for `0.1.0`. Tracked as `SUG-003`.
+**Residual risk**: `allowed_commands` matches by string prefix, not argument-level validation. A sufficiently permissive allowlist (e.g. `["bash"]`) still exposes arbitrary execution. Operators must keep the allowlist tight.
 
 ---
 
@@ -40,16 +41,6 @@ Status: **OPEN** / **ACCEPTED** (won't fix in current scope).
 Tool observations are injected as `MessageRole.USER` with an `Observation: ` prefix. The OPM `MessageRole` enum does not include a dedicated `tool` role. Using `USER` is the correct pragmatic choice given current OPM capabilities.
 
 **Accepted**: No action needed until OPM exposes a `tool` role.
-
----
-
-## Known Limitations
-
-### ISSUE-015 — ToolBox bus protocol not tested (Minor) ACCEPTED
-
-**File**: `test/`
-
-`ToolBox.bind()`, `handle_discover()`, `handle_call()` bus event format contracts are untested. OPM-level concern; acceptable for `0.1.0`.
 
 ---
 

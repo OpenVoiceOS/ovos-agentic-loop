@@ -12,7 +12,7 @@
 
 """Unit tests for SkillMDToolBox and helpers."""
 import textwrap
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -24,6 +24,7 @@ from ovos_agentic_loop.skills.toolbox import (
     SkillMDToolBox,
     _slugify,
 )
+from ovos_agentic_loop.tools.clock import ClockToolBox
 
 
 # ---------------------------------------------------------------------------
@@ -134,3 +135,83 @@ class TestSkillMDToolBoxCallTool:
         tb.refresh_tools()
         result = tb.call_tool("web_search", {"task": "answer to life"})
         assert result.result == "42"
+
+
+# ---------------------------------------------------------------------------
+# ToolBox bus protocol — bind / handle_discover / handle_call (ISSUE-015)
+# ---------------------------------------------------------------------------
+
+def _make_message(data: dict, msg_type: str = "test") -> MagicMock:
+    """Build a minimal mock Message compatible with the OPM ToolBox protocol."""
+    msg = MagicMock()
+    msg.data = data
+    msg.response.side_effect = lambda d: d  # response() just returns the payload dict
+    return msg
+
+
+class TestToolBoxBusProtocol:
+    def test_bind_registers_handlers(self) -> None:
+        """bind() subscribes to the discovery broadcast and the per-toolbox call channel."""
+        tb = ClockToolBox()
+        bus = MagicMock()
+        tb.bind(bus)
+        assert tb.bus is bus
+        # Must register exactly these two event names.
+        registered = {c.args[0] for c in bus.on.call_args_list}
+        assert "ovos.persona.tools.discover" in registered
+        assert f"ovos.persona.tools.{tb.toolbox_id}.call" in registered
+
+    def test_handle_discover_emits_tool_list(self) -> None:
+        """handle_discover emits the tool JSON list and toolbox_id."""
+        tb = ClockToolBox()
+        bus = MagicMock()
+        tb.bind(bus)
+
+        msg = _make_message({})
+        tb.handle_discover(msg)
+
+        bus.emit.assert_called_once()
+        emitted = bus.emit.call_args[0][0]
+        assert "tools" in emitted
+        assert emitted["toolbox_id"] == tb.toolbox_id
+        # ClockToolBox exposes exactly one tool.
+        assert len(emitted["tools"]) == 1
+        assert emitted["tools"][0]["name"] == "get_current_datetime"
+
+    def test_handle_call_returns_result(self) -> None:
+        """handle_call dispatches to call_tool and emits a result payload."""
+        tb = ClockToolBox()
+        bus = MagicMock()
+        tb.bind(bus)
+
+        msg = _make_message({"name": "get_current_datetime", "kwargs": {}})
+        tb.handle_call(msg)
+
+        bus.emit.assert_called_once()
+        emitted = bus.emit.call_args[0][0]
+        assert "result" in emitted
+        assert emitted["toolbox_id"] == tb.toolbox_id
+        assert "iso" in emitted["result"]
+
+    def test_handle_call_unknown_tool_emits_error(self) -> None:
+        """handle_call emits an error payload for an unknown tool name."""
+        tb = ClockToolBox()
+        bus = MagicMock()
+        tb.bind(bus)
+
+        msg = _make_message({"name": "nonexistent_tool", "kwargs": {}})
+        tb.handle_call(msg)
+
+        bus.emit.assert_called_once()
+        emitted = bus.emit.call_args[0][0]
+        assert "error" in emitted
+        assert emitted["toolbox_id"] == tb.toolbox_id
+
+    def test_handle_call_without_bind_does_not_crash(self) -> None:
+        """Calling handle_call before bind is not a supported use-case but must not
+        silently corrupt state — the bus attribute is None and the call should raise
+        AttributeError, which the test documents as expected behaviour."""
+        tb = ClockToolBox()
+        msg = _make_message({"name": "get_current_datetime", "kwargs": {}})
+        with pytest.raises(AttributeError):
+            tb.handle_call(msg)

@@ -184,12 +184,15 @@ When `allow_shell=False`, returns immediately with `returncode=-1` and `"Shell e
 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `allow_shell` | bool | `True` | Set to `False` to fully disable execution |
+| `allow_shell` | bool | `False` | Must be explicitly set to `True` to enable execution |
 | `max_timeout` | int | `120` | Maximum allowed timeout in seconds |
+| `allowed_commands` | list[str] | `[]` | Permitted command prefixes. Empty = all allowed. Non-empty = only matching prefixes execute — `shell.py:85` |
+
+When `allowed_commands` is non-empty, the first word of the command is matched against each prefix. Non-matching commands return `returncode=-1` and `"not permitted"` in `stderr` without any subprocess execution.
 
 ### Security Note
 
-`shell=True` passes the command string directly to `/bin/sh`. There is no input sanitisation. Do not expose this toolbox to untrusted LLM models. See AUDIT ISSUE-005.
+`shell=True` passes the command string directly to `/bin/sh`. Always combine `allow_shell: true` with a tight `allowed_commands` list in production environments.
 
 ### Example Persona Config
 
@@ -197,6 +200,7 @@ When `allow_shell=False`, returns immediately with `returncode=-1` and `"Shell e
 {
   "ovos-shell-tools": {
     "allow_shell": true,
+    "allowed_commands": ["git", "ls", "cat"],
     "max_timeout": 30
   }
 }

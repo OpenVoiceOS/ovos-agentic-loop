@@ -46,6 +46,18 @@ class ShellToolBox(ToolBox):
       to enable execution.  Defaults to ``False`` to prevent unintentional shell
       access when the toolbox is loaded from a persona config.
     - ``max_timeout`` (int, default ``120``): Maximum timeout in seconds.
+    - ``allowed_commands`` (list[str], default ``[]``): When non-empty, only
+      commands whose first word (or full string) starts with one of these
+      prefixes are permitted.  Commands that do not match any prefix are
+      rejected without execution.  An empty list means all commands are
+      allowed (subject to ``allow_shell``).
+
+    Example::
+
+        config = {
+            "allow_shell": True,
+            "allowed_commands": ["git", "ls", "cat"],
+        }
     """
 
     toolbox_id = "ovos-shell-tools"
@@ -81,6 +93,20 @@ class ShellToolBox(ToolBox):
                 returncode=-1,
                 success=False,
             )
+
+        allowed: List[str] = self.config.get("allowed_commands", [])
+        if allowed:
+            cmd_first_word = args.command.strip().split()[0] if args.command.strip() else ""
+            if not any(
+                args.command.strip().startswith(prefix) or cmd_first_word == prefix
+                for prefix in allowed
+            ):
+                return RunCommandOutput(
+                    stdout="",
+                    stderr=f"Command not permitted by allowed_commands policy: {cmd_first_word!r}.",
+                    returncode=-1,
+                    success=False,
+                )
 
         max_timeout = int(self.config.get("max_timeout", 120))
         effective_timeout = min(args.timeout, max_timeout)

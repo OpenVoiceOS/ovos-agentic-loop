@@ -19,17 +19,9 @@ Status: ✅ DONE / OPEN / LOW-PRI
 
 ---
 
-### SUG-003 — ShellToolBox command allowlist (fixes AUDIT ISSUE-005)
+### SUG-003 — ShellToolBox command allowlist ✅ DONE
 
-Add a `allowed_commands` config key: list of permitted command prefixes (e.g. `["git", "ls", "cat"]`). Commands not matching any prefix return an error without execution. This allows `allow_shell: true` in controlled environments without full shell access.
-
-```python
-# Proposed API
-config = {
-    "allow_shell": True,
-    "allowed_commands": ["git status", "git log", "ls"],
-}
-```
+`allowed_commands` config key added — `shell.py:85`. Commands whose first word does not match any listed prefix are rejected without execution. Empty list (default) imposes no restrictions.
 
 ---
 

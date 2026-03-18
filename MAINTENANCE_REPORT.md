@@ -1,5 +1,16 @@
 # MAINTENANCE_REPORT — ovos-agentic-loop
 
+## 2026-03-18 — Fix ISSUE-005 and ISSUE-015
+
+- **AI Model**: claude-sonnet-4-6
+- **Actions Taken**:
+  - Fixed ISSUE-005: Added `allowed_commands` config key to `ShellToolBox` — `shell.py:85`. Commands whose first word does not match a listed prefix are rejected without subprocess execution. Empty list = no restriction (default). Updated `docs/toolboxes.md` config table and security note.
+  - Fixed ISSUE-015: Added `TestToolBoxBusProtocol` (5 tests) to `test/test_toolbox.py` covering `bind()` event registration, `handle_discover()` payload, `handle_call()` success, `handle_call()` unknown-tool error, pre-bind guard.
+  - Updated `AUDIT.md`: ISSUE-005 now MITIGATED; ISSUE-015 now RESOLVED.
+  - Updated `SUGGESTIONS.md`: SUG-003 marked ✅ DONE.
+  - 266 → 276 tests, all passing.
+- **Oversight**: User-directed task
+
 ## 2026-03-18 — Fix remaining open issues
 
 - **AI Model**: claude-sonnet-4-6
