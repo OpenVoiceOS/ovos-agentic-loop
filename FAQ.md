@@ -54,7 +54,10 @@ A: Call `toolbox.set_brain(brain_instance)` or let the owning `ReActLoopEngine` 
 A: Limits tool-call cycles. When reached, the brain is asked for a final answer with a prompt. Default: 10.
 
 **Q: What standard toolboxes are included besides SkillMDToolBox?**
-A: Four direct-execution toolboxes in `ovos_agentic_loop/tools/`: `FileSystemToolBox` (read/write/list/search/find files), `ShellToolBox` (run shell commands), `WebSearchToolBox` (DuckDuckGo search), `ClockToolBox` (current date/time).
+A: Five direct-execution toolboxes in `ovos_agentic_loop/tools/`: `FileSystemToolBox` (read/write/list/search/find files), `ShellToolBox` (run shell commands), `WebSearchToolBox` (DuckDuckGo search), `ClockToolBox` (current date/time), `MathToolBox` (evaluate_expression, unit_convert, statistics_summary, solve_equation).
+
+**Q: What can MathToolBox do?**
+A: Four tools — `evaluate_expression` (safe AST-based evaluator, no eval()), `unit_convert` (length/mass/volume/time/speed/area/data/temperature), `statistics_summary` (mean/median/stdev/min/max/sum), `solve_equation` (symbolic via sympy if installed, bisection fallback). Entry point: `ovos-math-tools`. No required external dependencies.
 
 **Q: How do I enable web search?**
 A: Install the optional dependency: `pip install 'ovos-agentic-loop[web]'` (adds `duckduckgo-search>=6.0`). The toolbox is importable without it but returns an install-instructions error.

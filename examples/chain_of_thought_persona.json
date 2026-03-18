@@ -1,0 +1,19 @@
+{
+  "_comment": "Reasoner persona config for ovos-persona. See chain_of_thought_persona.py for the full example.",
+  "name": "Reasoner",
+  "solvers": [
+    "ovos-chain-of-thought"
+  ],
+  "ovos-chain-of-thought": {
+    "brain": "ovos-chat-openai-plugin",
+    "system_prompt": "You are a careful, methodical reasoning assistant. For every question, think through the problem step by step before giving your final answer. Show your reasoning clearly \u2014 the user wants to follow your logic.",
+    "ovos-chat-openai-plugin": {
+      "_comment": "Point api_url at any OpenAI-compatible server: llama.cpp, Ollama, LM Studio, or OpenAI proper.",
+      "model": "llama3",
+      "api_url": "http://localhost:11434/v1/chat/completions",
+      "api_key": "not-needed-for-local",
+      "temperature": 0.6,
+      "max_tokens": 1024
+    }
+  }
+}

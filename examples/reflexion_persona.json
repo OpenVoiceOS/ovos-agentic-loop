@@ -1,0 +1,23 @@
+{
+  "_comment": "Reflexion persona config for ovos-persona. See reflexion_persona.py for the full example.",
+  "name": "Reflexion",
+  "solvers": [
+    "ovos-reflexion-loop"
+  ],
+  "ovos-reflexion-loop": {
+    "brain": "ovos-chat-openai-plugin",
+    "max_reflections": 3,
+    "system_prompt": "You are a precise, self-critical assistant. Think carefully before answering. If you are unsure about a fact, search the web to verify it. Accuracy matters more than speed.",
+    "toolboxes": [
+      "ovos-web-search-tools"
+    ],
+    "ovos-chat-openai-plugin": {
+      "_comment": "Point api_url at any OpenAI-compatible server: llama.cpp, Ollama, LM Studio, or OpenAI proper.",
+      "model": "llama3",
+      "api_url": "http://localhost:11434/v1/chat/completions",
+      "api_key": "not-needed-for-local",
+      "temperature": 0.4,
+      "max_tokens": 1024
+    }
+  }
+}

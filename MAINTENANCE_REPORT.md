@@ -1,5 +1,30 @@
 # MAINTENANCE_REPORT — ovos-agentic-loop
 
+## 2026-03-18 — GitHub publishing preparation
+
+- **AI Model**: claude-sonnet-4-6
+- **Actions Taken**:
+  - Fixed ISSUE-002: `brain` property now injects brain into toolboxes after lazy OPM load — `react.py:182`
+  - Fixed ISSUE-003: `_load_brain()` now emits `LOG.warning` on failure — `react.py:212`
+  - Added Apache 2.0 license headers to all 24 Python source and test files
+  - Added `MathToolBox` to `tools/__init__.py` exports
+  - Created `README.md` with quick-start, feature table, security notes, and docs index
+  - Updated `AUDIT.md`: marked ISSUE-001/002/003/004/006/009/017 as RESOLVED; classified remaining open issues
+  - Updated `QUICK_FACTS.md`: added all 7 loop engines and `MathToolBox`
+  - Updated `SUGGESTIONS.md`: marked SUG-001/002/004 as DONE; refined open items
+  - Added GitHub CI/CD workflows via `ovos-workflows-adder`
+- **Oversight**: User-directed task
+
+## 2026-03-18 — MathToolBox
+
+- **AI Model**: claude-sonnet-4-6
+- **Actions Taken**:
+  - Created `ovos_agentic_loop/tools/math.py` — `MathToolBox` with 4 tools: `evaluate_expression`, `unit_convert`, `statistics_summary`, `solve_equation`
+  - Added `ovos-math-tools` entry point to `pyproject.toml`
+  - Created `test/test_math_toolbox.py` — 47 unit tests (all pass)
+  - Updated `docs/toolboxes.md` and `FAQ.md`
+- **Oversight**: User-directed task
+
 ## 2026-03-17 — P0/P1 security and correctness fixes
 
 - **AI Model**: claude-sonnet-4-6

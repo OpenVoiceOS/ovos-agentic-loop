@@ -1,189 +1,179 @@
 # AUDIT — ovos-agentic-loop
 
 Evidence-based audit with source citations. Severity: Critical / Major / Minor / Nitpick.
+Status: **RESOLVED** / **OPEN** / **ACCEPTED** (won't fix in current scope).
 
 ---
 
 ## Interface Compliance
 
-### ISSUE-001 — AgentContextManager method signature mismatch (Major)
+### ISSUE-001 — AgentContextManager method signatures ✅ RESOLVED
 
-**File**: `ovos_agentic_loop/context/agents_md.py:203, 212, 221`
+**File**: `ovos_agentic_loop/context/agents_md.py:211`
 
-The OPM `AgentContextManager` abstract base (`agents.py:63`) declares:
+Signatures now match OPM `AgentContextManager` ABC:
+- `get_history(self, session_id: str) -> List[AgentMessage]`
+- `update_history(self, new_messages: List[AgentMessage], session_id: str) -> None`
+- `build_conversation_context(self, utterance: str, session_id: str) -> List[AgentMessage]`
 
-```python
-def get_history(self, session_id: str) -> List[AgentMessage]: ...
-def update_history(self, new_messages: List[AgentMessage], session_id: str): ...
-def build_conversation_context(self, utterance: str, session_id: str) -> List[AgentMessage]: ...
-```
-
-`AgentsMDContextManager` implements:
-
-```python
-def get_history(self) -> List[AgentMessage]: ...               # missing session_id
-def update_history(self, message: AgentMessage) -> None: ...   # wrong signature (single msg, no session_id)
-def build_conversation_context(self, utterance: str, lang: Optional[str] = None) -> List[AgentMessage]: ...  # session_id replaced by lang
-```
-
-**Impact**: Any caller that follows the OPM interface and passes `session_id` will trigger a `TypeError`. The class is not a valid implementation of the OPM abstract base in the strict sense. Multi-session support is absent.
-
-**Mitigation**: Currently, if `ovos-persona` calls `build_conversation_context(utterance, session_id=...)` as a keyword argument, Python will bind `session_id` to `lang` only if the keyword names match — they do not, so a `TypeError` will result.
+Per-session history stored in `self._sessions: Dict[str, List[AgentMessage]]` — `agents_md.py:112`.
 
 ---
 
-### ISSUE-002 — SkillMDToolBox brain not auto-injected (Major)
+### ISSUE-002 — SkillMDToolBox brain not auto-injected ✅ RESOLVED
 
-**File**: `ovos_agentic_loop/skills/toolbox.py:87`
+**File**: `ovos_agentic_loop/react.py:179`
 
-`SkillMDToolBox.set_brain()` must be called explicitly before any tool invocation. `ReActLoopEngine` does not automatically share its own brain instance with sub-toolboxes. Any persona config that includes `ovos-skill-md-toolbox` without manual wiring will result in a `RuntimeError: brain ChatEngine is not configured` at call time — `toolbox.py:113`.
-
-**Mitigation**: None currently. Must be wired manually.
+`brain` property now calls `_inject_brain_into_toolboxes` after lazy-loading via OPM — `react.py:182`. Both the `set_brain()` explicit path and the lazy OPM path propagate the brain to all registered toolboxes.
 
 ---
 
-### ISSUE-003 — ReActLoopEngine brain load is fully silent (Minor)
+### ISSUE-003 — ReActLoopEngine brain load silent ✅ RESOLVED
 
-**File**: `ovos_agentic_loop/react.py:143`
+**File**: `ovos_agentic_loop/react.py:209`
 
-`_load_brain()` catches all exceptions with bare `except Exception` and returns `None` silently. A misconfigured or missing `brain` plugin ID surfaces only as `"Error: no brain configured."` at `continue_chat` call time — `react.py:221`. No log message is emitted.
-
-**Impact**: Difficult to diagnose brain loading failures in production.
+`_load_brain()` now emits `LOG.warning(f"ReActLoopEngine: failed to load brain '{brain_id}': {exc}")` on failure — `react.py:212`.
 
 ---
 
-### ISSUE-004 — _load_toolboxes_from_config is fully silent (Minor)
+### ISSUE-004 — _load_toolboxes_from_config silent ✅ RESOLVED
 
-**File**: `ovos_agentic_loop/base.py:68`
+**File**: `ovos_agentic_loop/base.py:104`
 
-Toolbox loading failures are silently swallowed with `except Exception: pass`. No warning or log is emitted. A misconfigured toolbox ID will result in `self.toolboxes` missing that entry with no indication.
+`LOG.warning(f"AgenticLoopEngine: failed to load toolbox '{tid}': {exc}")` emitted on each toolbox load failure — `base.py:105`.
 
 ---
 
-### ISSUE-005 — ShellToolBox: shell injection risk (Major)
+### ISSUE-005 — ShellToolBox: shell injection risk (Major) OPEN / ACCEPTED
 
 **File**: `ovos_agentic_loop/tools/shell.py:75`
 
-`subprocess.run(args.command, shell=True, ...)` passes the LLM-generated command string directly to `/bin/sh`. There is no input validation, command allowlist, or sandboxing. A compromised or adversarially prompted LLM could execute arbitrary commands.
+`subprocess.run(args.command, shell=True, ...)` passes the LLM-generated command string directly to `/bin/sh`. No input validation, command allowlist, or sandboxing.
 
-**Guidance**: `allow_shell=False` in production deployments where the LLM is not fully trusted. Consider a command allowlist or `shell=False` with explicit argument parsing as a future improvement.
+**Mitigations in place**:
+- `allow_shell` defaults to `False` — `shell.py:41`. Must be explicitly enabled.
+- Documented in README Security Notes and `docs/toolboxes.md`.
 
----
-
-### ISSUE-006 — FileSystemToolBox: path traversal risk (Minor)
-
-**File**: `ovos_agentic_loop/tools/filesystem.py:123`
-
-`_read_file` accepts any absolute or relative path and resolves it via `Path(args.path)`. There is no path restriction (e.g. sandbox root). An agent could read `/etc/passwd`, `.ssh/id_rsa`, or any world-readable file.
-
-**Guidance**: Add a `root_path` config key to restrict all operations to a subtree.
+**Accepted risk**: A command allowlist would be useful but is out of scope for `0.1.0`. Tracked as `SUG-003`.
 
 ---
 
-### ISSUE-007 — ReAct system prompt is English-only (Minor)
+### ISSUE-006 — FileSystemToolBox: path traversal ✅ RESOLVED
+
+**File**: `ovos_agentic_loop/tools/filesystem.py:63`
+
+`_safe_path(requested)` resolves all paths relative to `root_path` and rejects any path that escapes the sandbox — `filesystem.py:63`. Escaping attempts return an error string without touching the filesystem.
+
+---
+
+### ISSUE-007 — ReAct system prompt is English-only (Minor) OPEN
 
 **File**: `ovos_agentic_loop/react.py:15`
 
-`_REACT_SYSTEM_PROMPT` is a hard-coded English string. The `lang` parameter passed to `continue_chat` is forwarded to the brain but does not influence the system prompt language. LLMs may respond in the user's language regardless, but the structured output format instructions (`Thought:`, `Action:`, `Action Input:`, `FINAL_ANSWER:`) are only in English.
+`_REACT_SYSTEM_PROMPT` is a hard-coded English string. The structured output format tokens (`Thought:`, `Action:`, `FINAL_ANSWER:`) are English-only. Most capable LLMs comply regardless of user language, but strict multilingual compliance is not guaranteed.
+
+**Mitigation**: None. Tracked as `SUG-007`.
 
 ---
 
-### ISSUE-008 — Observation role uses MessageRole.USER (Nitpick)
+### ISSUE-008 — Observation role uses MessageRole.USER (Nitpick) OPEN
 
-**File**: `ovos_agentic_loop/react.py:257`
+**File**: `ovos_agentic_loop/react.py:310`
 
-Tool observations are injected as `MessageRole.USER` messages with an `Observation: ` prefix. Some LLM providers support a dedicated `tool` role; using `USER` may cause confusion in chat histories when reviewed or replayed.
+Tool observations are injected as `MessageRole.USER` with an `Observation: ` prefix. The OPM `MessageRole` enum does not include a dedicated `tool` role. Using `USER` is the correct pragmatic choice given current OPM capabilities.
+
+**Accepted**: No action needed until OPM exposes a `tool` role.
 
 ---
 
-### ISSUE-009 — _parse_action regex: greedy Action Input match (Minor)
+### ISSUE-009 — Action Input regex truncates nested JSON ✅ RESOLVED
 
-**File**: `ovos_agentic_loop/react.py:65`
+**File**: `ovos_agentic_loop/react.py:54`
 
-`r"Action Input:\s*(\{.*?\})"` with DOTALL uses a non-greedy match for the JSON object. If the LLM produces nested JSON with closing `}` characters before the outermost `}`, the regex may capture an incomplete JSON fragment, causing `json.JSONDecodeError` and returning `None`. The LLM's response would then be treated as a final answer rather than an action.
+Replaced greedy/non-greedy regex with a balanced-brace parser `_extract_json_object(text, start)` that correctly handles nested JSON objects — `react.py:54`. Tested by `TestParseAction` in `test/test_react.py`.
 
 ---
 
 ## Test Coverage Gaps
 
-### ISSUE-010 — _discover_via_entry_points not tested with mocked metadata (Minor)
+### ISSUE-010 — _discover_via_entry_points not tested (Minor) OPEN
 
 **File**: `test/test_loader.py`
 
-`_discover_via_entry_points()` — `loader.py:79` — is not exercised by any test. The entry-point fallback path (raw `ep.value` as path) — `loader.py:108` — is also untested.
+The entry-point fallback path in `loader.py:79` has no mock-based test. Tracking only; acceptable for `0.1.0`.
 
 ---
 
-### ISSUE-011 — _discover_via_package_data not tested (Minor)
+### ISSUE-011 — _discover_via_package_data not tested (Minor) OPEN
 
 **File**: `test/test_loader.py`
 
-`_discover_via_package_data()` — `loader.py:114` — is never directly tested. Only `extra_paths` loading is covered. The package-data scan involving `importlib.metadata.distributions()` is exercised only indirectly and only returns real-world results (not mocked).
+`_discover_via_package_data()` — `loader.py:114` — not directly tested. Acceptable for `0.1.0`.
 
 ---
 
-### ISSUE-012 — AgentsMDContextManager auto discovery not tested (Minor)
+### ISSUE-012 — AgentsMDContextManager auto discovery not tested (Minor) OPEN
 
 **File**: `test/test_agents_md.py`
 
-`_discover_agents_md_paths()` — `agents_md.py:38` — is not covered by any test. The `"auto"` source path triggers the distribution scan, which is expensive and environment-dependent. A mock-based test is needed.
+`_discover_agents_md_paths()` not covered by any test. Acceptable for `0.1.0`.
 
 ---
 
-### ISSUE-013 — ReActLoopEngine _load_toolboxes_from_config not tested (Minor)
+### ISSUE-013 — _load_toolboxes_from_config OPM path not tested (Minor) OPEN
 
 **File**: `test/test_base.py`
 
-`_load_toolboxes_from_config()` — `base.py:50` — is only tested indirectly. The OPM `load_toolbox_plugin` path is not exercised because OPM is not available in the test environment. Import failure branch is covered by the `ImportError` catch — `base.py:70` — but not explicitly asserted.
+OPM plugin path in `base.py:93` not exercised. Acceptable for `0.1.0`.
 
 ---
 
-### ISSUE-014 — ReActLoopEngine _load_brain OPM path not tested (Minor)
+### ISSUE-014 — _load_brain OPM path not tested (Minor) OPEN
 
 **File**: `test/test_react.py`
 
-All tests use `set_brain()`. The `_load_brain()` OPM path — `react.py:143` — is not tested. Missing `brain` key, OPM unavailable, and OPM returning `None` are not covered.
+All tests use `set_brain()`. The `_load_brain()` OPM path — `react.py:207` — not tested. Acceptable for `0.1.0`.
 
 ---
 
-### ISSUE-015 — ToolBox bus protocol not tested (Minor)
+### ISSUE-015 — ToolBox bus protocol not tested (Minor) OPEN
 
 **File**: `test/`
 
-`ToolBox.bind()`, `handle_discover()`, and `handle_call()` are OPM base methods. The agentic-loop test suite has no test that verifies the bus event protocol (discovery response format, call-result format). This is partial coverage: the bus path exists but the format contract is unverified.
+`ToolBox.bind()`, `handle_discover()`, `handle_call()` bus event format contracts are untested. OPM-level concern; acceptable for `0.1.0`.
 
 ---
 
 ## Type Annotation Issues
 
-### ISSUE-016 — AgenticLoopEngine.toolboxes typed as List[Any] (Nitpick)
+### ISSUE-016 — AgenticLoopEngine.toolboxes typed as List[Any] (Nitpick) OPEN
 
-**File**: `ovos_agentic_loop/base.py:35`
+**File**: `ovos_agentic_loop/base.py:36`
 
-`self.toolboxes: List[Any]` avoids a circular import with `ToolBox`. Should be `List["ToolBox"]` or use `TYPE_CHECKING` — weakens static analysis on toolbox usage.
+`self.toolboxes: List[Any]` avoids a circular import with `ToolBox`. Should be `List["ToolBox"]` or use `TYPE_CHECKING`. Tracked as `SUG-008`.
 
 ---
 
 ## Known Limitations
 
-### ISSUE-003 (repeated) — No async support
+### ISSUE-017 — No session isolation in AgentsMDContextManager ✅ RESOLVED
+
+**File**: `ovos_agentic_loop/context/agents_md.py:112`
+
+Per-session history stored in `self._sessions: Dict[str, List[AgentMessage]]` — each session isolated. Consequence of ISSUE-001 fix.
+
+---
+
+### ISSUE-018 — No async support (Accepted)
 
 **File**: `ovos_agentic_loop/base.py`, `ovos_agentic_loop/react.py`
 
-All `continue_chat` paths are synchronous. Long tool chains (especially `ShellToolBox` or `WebSearchToolBox`) block the calling thread for the full duration. In an asyncio event loop, this stalls other coroutines.
+All `continue_chat` paths are synchronous. Long tool chains block the calling thread. Tracked as `SUG-009`.
 
 ---
 
-### ISSUE-017 — No session isolation in AgentsMDContextManager
+### ISSUE-019 — SkillMDLoader does not cache parsed entries (Minor) OPEN
 
-**File**: `ovos_agentic_loop/context/agents_md.py:105`
+**File**: `ovos_agentic_loop/skills/loader.py`
 
-`self._history` is a single flat list shared across all sessions. Multiple concurrent callers will have their messages interleaved. This is a consequence of ISSUE-001.
-
----
-
-### ISSUE-018 — SkillMDLoader does not cache parsed entries
-
-**File**: `ovos_agentic_loop/skills/loader.py:196`
-
-`SkillMDLoader.load()` re-parses all files on every call. `SkillMDToolBox.discover_tools()` calls `self._loader.load()` — `toolbox.py:136` — on every invocation (triggered by `ToolBox.refresh_tools()` and initial construction). For environments with many installed SKILL.md files, this is unnecessarily expensive.
+`load()` re-parses all SKILL.md files on every call. Acceptable for `0.1.0`; tracked as `SUG-010`.

@@ -1,5 +1,16 @@
 # ovos-agentic-loop — Examples
 
+| Example | Engine | Tools | Use case |
+| :--- | :--- | :--- | :--- |
+| `weatherman_persona.py` | `ReActLoopEngine` | `WeatherToolBox` | Real-time weather queries |
+| `research_assistant_persona.py` | `ReActLoopEngine` | `WebSearchToolBox`, `ClockToolBox` | Current events, fact lookup |
+| `chain_of_thought_persona.py` | `ChainOfThoughtEngine` | none | Reasoning, math, logic |
+| `reflexion_persona.py` | `ReflexionEngine` | `WebSearchToolBox` | Self-correcting, high-accuracy answers |
+
+Each example ships a matching `.json` persona config for use with `ovos-persona`.
+
+---
+
 ## weatherman_persona.py
 
 A minimal demo wiring `ReActLoopEngine` + `WeatherToolBox` + a local LLM.
@@ -45,6 +56,141 @@ ReActLoopEngine
 pip install ovos-agentic-loop ovos-openai-plugin ovos-skill-weather
 ```
 
+### Environment variables
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `WEATHERMAN_MODEL` | `llama3` | Model name |
+| `WEATHERMAN_API_URL` | `http://localhost:11434/v1` | LLM server URL |
+| `WEATHERMAN_LAT` | `48.8566` | Default latitude (Paris) |
+| `WEATHERMAN_LON` | `2.3522` | Default longitude |
+| `WEATHERMAN_TZ` | `Europe/Paris` | Default timezone |
+| `WEATHERMAN_UNITS` | `metric` | `metric` or `imperial` |
+
+---
+
+## research_assistant_persona.py
+
+`ReActLoopEngine` + `WebSearchToolBox` (DuckDuckGo) + `ClockToolBox`.
+
+Best for questions that require current information: news, recent events,
+live data, or "what time is it".
+
+### Architecture
+
+```
+User input
+    │
+    ▼
+ReActLoopEngine (max 6 iterations)
+    ├──► web_search("query") → DuckDuckGo results
+    ├──► get_current_datetime() → system clock
+    └──► FINAL_ANSWER
+```
+
+### Prerequisites
+
+```bash
+pip install "ovos-agentic-loop[web]" ovos-openai-plugin
+```
+
+### Environment variables
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `RESEARCH_MODEL` | `llama3` | Model name |
+| `RESEARCH_API_URL` | `http://localhost:11434/v1` | LLM server URL |
+| `RESEARCH_RESULTS` | `5` | Max search results per query |
+
+---
+
+## chain_of_thought_persona.py
+
+`ChainOfThoughtEngine` + a local LLM.  No tools — single LLM call.
+
+Best for arithmetic, logic puzzles, multi-step instructions, and any task
+where structured reasoning (not external data) is the bottleneck.
+
+### Architecture
+
+```
+User input
+    │
+    ▼
+ChainOfThoughtEngine
+    │  "Let's think step by step…"
+    │  single LLM call
+    └──► FINAL ANSWER
+```
+
+### Prerequisites
+
+```bash
+pip install ovos-agentic-loop ovos-openai-plugin
+```
+
+### Environment variables
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `COT_MODEL` | `llama3` | Model name |
+| `COT_API_URL` | `http://localhost:11434/v1` | LLM server URL |
+
+---
+
+## reflexion_persona.py
+
+`ReflexionEngine` + `WebSearchToolBox`.
+
+After each episode the engine evaluates its own answer.  If the answer is
+weak, it generates a verbal critique (reflection) and retries — up to
+`max_reflections` times.  Each retry is conditioned on accumulated lessons
+learned.
+
+Best for multi-hop questions, tasks where the first attempt is likely
+wrong, or any situation where accuracy matters more than latency.
+
+### Architecture
+
+```
+User input
+    │
+    ▼
+ReflexionEngine
+    │
+    ├── Episode 1: inner ReAct loop → draft answer
+    │       │
+    │       ▼
+    │   Evaluator: "Is this answer satisfactory?"
+    │       │ No → Reflector: "What went wrong?"
+    │       │             │
+    │       │         reflection stored
+    │       │
+    ├── Episode 2: ReAct loop (with reflection in context) → revised answer
+    │       ▼
+    │   Evaluator: "Satisfactory?" → Yes → done
+    │
+    └──► Best answer returned
+```
+
+### Prerequisites
+
+```bash
+pip install "ovos-agentic-loop[web]" ovos-openai-plugin
+```
+
+### Environment variables
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `REFLEXION_MODEL` | `llama3` | Model name |
+| `REFLEXION_API_URL` | `http://localhost:11434/v1` | LLM server URL |
+| `REFLEXION_MAX_ROUNDS` | `3` | Max self-reflection episodes |
+
+---
+
+## Common setup
+
 Start a local OpenAI-compatible LLM (any of these work):
 
 ```bash
@@ -57,38 +203,24 @@ ollama pull llama3
 # OR point at the real OpenAI API
 ```
 
-### Run
+Run any example:
 
 ```bash
-python examples/weatherman_persona.py
+python examples/<example>.py
+
+# Print the equivalent JSON persona config and exit:
+python examples/<example>.py --print-config
 ```
 
-Print the equivalent persona JSON config:
+## Using with ovos-persona
 
-```bash
-python examples/weatherman_persona.py --print-config
-```
-
-### Environment variables
-
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `WEATHERMAN_MODEL` | `llama3` | Model name to request from the LLM server |
-| `WEATHERMAN_API_URL` | `http://localhost:11434/v1` | Base URL of the OpenAI-compatible server |
-| `WEATHERMAN_LAT` | `48.8566` | Default latitude (Paris) |
-| `WEATHERMAN_LON` | `2.3522` | Default longitude |
-| `WEATHERMAN_TZ` | `Europe/Paris` | Default timezone |
-| `WEATHERMAN_UNITS` | `metric` | `metric` or `imperial` |
-
-### Using with ovos-persona
-
-Load `weatherman_persona.json` into your OVOS persona directory, or use the
-`PERSONA_CONFIG` dict from `weatherman_persona.py` directly:
+Load any `.json` config from this directory into your OVOS persona directory,
+or use the `PERSONA_CONFIG` dict from the corresponding `.py` file directly:
 
 ```python
-from examples.weatherman_persona import PERSONA_CONFIG
 from ovos_plugin_manager.persona import load_persona
+from examples.research_assistant_persona import PERSONA_CONFIG
 
-persona = load_persona("WeatherMan", PERSONA_CONFIG)
-response = persona.chat("Will it rain tomorrow in London?")
+persona = load_persona("Researcher", PERSONA_CONFIG)
+response = persona.chat("What happened in the news today?")
 ```

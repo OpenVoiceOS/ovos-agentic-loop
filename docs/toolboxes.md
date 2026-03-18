@@ -268,3 +268,77 @@ Implementation: `datetime.now().astimezone()` — `clock.py:53`. Timezone name f
 ### Config Keys
 
 None.
+
+
+---
+
+## MathToolBox
+
+**Entry point ID**: `ovos-math-tools`
+**Source**: `ovos_agentic_loop/tools/math.py`
+
+Safe mathematical operations. No external dependencies required for three of the four tools; `solve_equation` uses `sympy` when installed.
+
+### Tool: `evaluate_expression`
+
+| Argument | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `expression` | str | yes | Math expression string |
+
+| Output field | Type | Description |
+| :--- | :--- | :--- |
+| `result` | float | Numeric result (`nan` on error) |
+| `expression` | str | Original input |
+| `error` | str\|None | Error message on failure |
+
+Evaluation uses `ast.parse` + a whitelist of operators and functions — no `eval()` — `math.py:71`. Supported: `+`, `-`, `*`, `/`, `//`, `%`, `**`, and functions `abs, round, sqrt, ceil, floor, log, log10, log2, exp, sin, cos, tan, asin, acos, atan, atan2, degrees, radians, factorial, gcd, lcm`. Constants: `pi, e, tau, inf`.
+
+### Tool: `unit_convert`
+
+| Argument | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `value` | float | yes | Numeric value to convert |
+| `from_unit` | str | yes | Source unit (case-insensitive) |
+| `to_unit` | str | yes | Target unit (case-insensitive) |
+
+| Output field | Type | Description |
+| :--- | :--- | :--- |
+| `result` | float | Converted value |
+| `category` | str | Measurement category |
+| `error` | str\|None | Error on failure |
+
+Supported categories: `length`, `mass`, `volume`, `time`, `speed`, `area`, `data`, `temperature`. Temperature uses affine conversion (Celsius/Fahrenheit/Kelvin); all others use SI-base linear factors — `math.py:136`. Incompatible categories return an error.
+
+### Tool: `statistics_summary`
+
+| Argument | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `numbers` | list[float] | yes | Values to summarise |
+
+| Output field | Type | Description |
+| :--- | :--- | :--- |
+| `count` | int | Number of values |
+| `mean` | float | Arithmetic mean |
+| `median` | float | Median |
+| `stdev` | float\|None | Sample std deviation (None when n < 2) |
+| `minimum` | float | Min value |
+| `maximum` | float | Max value |
+| `total` | float | Sum |
+
+### Tool: `solve_equation`
+
+| Argument | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `equation` | str | yes | Python expression equal to zero (e.g. `x**2 - 4`) |
+
+| Output field | Type | Description |
+| :--- | :--- | :--- |
+| `solutions` | list[float] | Real-valued roots |
+| `method` | str | `"symbolic"` (sympy) or `"numeric"` (bisection fallback) |
+| `error` | str\|None | Error on failure |
+
+Tries `sympy.solve` first; falls back to bisection scan over `[-1000, 1000]` — `math.py:375`.
+
+### Config Keys
+
+None.

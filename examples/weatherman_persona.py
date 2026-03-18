@@ -38,7 +38,7 @@ Environment variables (optional overrides):
 
     WEATHERMAN_MODEL   — model name to request (default: "llama3")
     WEATHERMAN_API_URL — base URL of the local LLM server
-                         (default: "http://localhost:11434/v1")
+                         (default: "http://localhost:11434/v1/chat/completions")
     WEATHERMAN_LAT     — latitude for weather queries (default: 48.85 = Paris)
     WEATHERMAN_LON     — longitude for weather queries (default: 2.35)
     WEATHERMAN_TZ      — timezone (default: "Europe/Paris")
@@ -81,7 +81,7 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 # ---------------------------------------------------------------------------
 
 MODEL = os.getenv("WEATHERMAN_MODEL", "llama3")
-API_URL = os.getenv("WEATHERMAN_API_URL", "http://localhost:11434/v1")
+API_URL = os.getenv("WEATHERMAN_API_URL", "http://localhost:11434/v1/chat/completions")
 LAT = float(os.getenv("WEATHERMAN_LAT", "48.8566"))
 LON = float(os.getenv("WEATHERMAN_LON", "2.3522"))
 TZ = os.getenv("WEATHERMAN_TZ", "Europe/Paris")
@@ -111,7 +111,7 @@ def build_weatherman() -> ReActLoopEngine:
     brain = OpenAIChatEngine(config={
         "model": MODEL,
         "api_url": API_URL,
-        "api_key": "not-needed-for-local",  # most local servers ignore the key
+        "key": "not-needed-for-local",  # most local servers ignore the key
         "temperature": 0.3,
         "max_tokens": 512,
     })
@@ -202,19 +202,17 @@ def chat_loop(agent: ReActLoopEngine, default_lat: float = LAT,
 PERSONA_CONFIG = {
     "name": "WeatherMan",
     "solvers": ["ovos-react-loop"],
-    "plugin-config": {
-        "ovos-react-loop": {
-            "brain": "ovos-chat-openai-plugin",
-            "max_iterations": 5,
-            "system_prompt": SYSTEM_PROMPT,
-            "toolboxes": ["ovos-weather-tools"],
-            "ovos-chat-openai-plugin": {
-                "model": MODEL,
-                "api_url": API_URL,
-                "api_key": "not-needed-for-local",
-                "temperature": 0.3,
-            },
-        }
+    "ovos-react-loop": {
+        "brain": "ovos-chat-openai-plugin",
+        "max_iterations": 5,
+        "system_prompt": SYSTEM_PROMPT,
+        "toolboxes": ["ovos-weather-tools"],
+        "ovos-chat-openai-plugin": {
+            "model": MODEL,
+            "api_url": API_URL,
+            "api_key": "not-needed-for-local",
+            "temperature": 0.3,
+        },
     },
 }
 """

@@ -1,9 +1,22 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """ReActLoopEngine — ReAct (Reason + Act) agentic loop implementation."""
 import json
 import re
 from typing import Any, Dict, List, Optional
 
 from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine, MessageRole
+from ovos_utils.log import LOG
 
 from ovos_agentic_loop.base import AgenticLoopEngine
 
@@ -178,6 +191,8 @@ class ReActLoopEngine(AgenticLoopEngine):
         """The inner ChatEngine used for LLM calls."""
         if self._brain is None:
             self._brain = self._load_brain()
+            if self._brain is not None:
+                self._inject_brain_into_toolboxes(self._brain)
         return self._brain
 
     def set_brain(self, brain: ChatEngine) -> None:
@@ -206,7 +221,8 @@ class ReActLoopEngine(AgenticLoopEngine):
         try:
             from ovos_plugin_manager.agents import load_chat_plugin
             return load_chat_plugin(brain_id, config=self.config.get(brain_id, {}))
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            LOG.warning(f"ReActLoopEngine: failed to load brain '{brain_id}': {exc}")
             return None
 
     def _collect_tool_schemas(self) -> List[Dict[str, Any]]:

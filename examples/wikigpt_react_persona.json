@@ -1,0 +1,14 @@
+{
+  "name": "WikiGPT-ReAct",
+  "chat": "ovos-react-loop",
+  "ovos-react-loop": {
+    "max_iterations": 6,
+    "llm": "ovos-openai-plugin",
+    "ovos-openai-plugin": {
+      "api_url": "http://localhost:11434/v1/chat/completions",
+      "model": "qwen3-8b",
+      "key": "nokey"
+    },
+    "toolboxes": ["ovos-wikipedia-tools"]
+  }
+}
