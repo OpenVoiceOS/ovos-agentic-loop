@@ -12,10 +12,13 @@
 
 """AgenticLoopEngine — base class for agent-loop ChatEngine plugins."""
 import abc
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine
 from ovos_utils.log import LOG
+
+if TYPE_CHECKING:
+    from ovos_plugin_manager.templates.agent_tools import ToolBox
 
 
 class AgenticLoopEngine(ChatEngine):
@@ -45,7 +48,7 @@ class AgenticLoopEngine(ChatEngine):
                 ``"toolboxes"`` key listing toolbox plugin IDs to load.
         """
         super().__init__(config=config)
-        self.toolboxes: List[Any] = []  # List[ToolBox] — avoids circular import
+        self.toolboxes: "List[ToolBox]" = []
         self._load_toolboxes_from_config()
 
     def load_toolboxes(self, toolboxes: List[Any]) -> None:

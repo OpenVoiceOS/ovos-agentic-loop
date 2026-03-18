@@ -13,11 +13,16 @@
 """Unit tests for AgentsMDContextManager."""
 import textwrap
 from typing import List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
-from ovos_agentic_loop.context.agents_md import AgentsMDContextManager, _parse_sections
+from ovos_agentic_loop.context.agents_md import (
+    AgentsMDContextManager,
+    _discover_agents_md_paths,
+    _parse_sections,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -185,3 +190,52 @@ class TestAgentsMDContextManagerBuildContext:
         mgr = AgentsMDContextManager(config={"agents_md_sources": []})
         messages = mgr.build_conversation_context("hi", "s")
         assert all(m.role != MessageRole.SYSTEM for m in messages)
+
+
+# ---------------------------------------------------------------------------
+# _discover_agents_md_paths (ISSUE-012)
+# ---------------------------------------------------------------------------
+
+class TestDiscoverAgentsMdPaths:
+    def test_returns_agents_md_from_distribution(self, tmp_path: "Path") -> None:
+        p = tmp_path / "AGENTS.md"
+        p.write_text("# Test", encoding="utf-8")
+
+        mock_file = MagicMock()
+        mock_file.name = "AGENTS.md"
+        mock_file.locate.return_value.resolve.return_value = p
+
+        mock_dist = MagicMock()
+        mock_dist.files = [mock_file]
+
+        with patch(
+            "ovos_agentic_loop.context.agents_md.importlib.metadata.distributions",
+            return_value=[mock_dist],
+        ):
+            paths = _discover_agents_md_paths()
+        assert str(p) in paths
+
+    def test_skips_nonexistent_file(self, tmp_path: "Path") -> None:
+        p = tmp_path / "MISSING.md"  # not created on disk
+
+        mock_file = MagicMock()
+        mock_file.name = "AGENTS.md"
+        mock_file.locate.return_value.resolve.return_value = p
+
+        mock_dist = MagicMock()
+        mock_dist.files = [mock_file]
+
+        with patch(
+            "ovos_agentic_loop.context.agents_md.importlib.metadata.distributions",
+            return_value=[mock_dist],
+        ):
+            paths = _discover_agents_md_paths()
+        assert paths == []
+
+    def test_returns_empty_on_metadata_error(self) -> None:
+        with patch(
+            "ovos_agentic_loop.context.agents_md.importlib.metadata.distributions",
+            side_effect=Exception("no dists"),
+        ):
+            paths = _discover_agents_md_paths()
+        assert paths == []

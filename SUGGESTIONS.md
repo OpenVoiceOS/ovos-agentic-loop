@@ -41,21 +41,15 @@ config = {
 
 ## Medium Priority
 
-### SUG-005 — SkillMDLoader caching (fixes AUDIT ISSUE-019)
+### SUG-005 — SkillMDLoader caching ✅ DONE
 
-Cache parsed SKILL.md entries after first `load()` call. Invalidate when source files change (use `os.path.getmtime`). Significantly reduces overhead in environments with many installed SKILL.md files.
+`SkillMDLoader.load()` now caches parsed entries and invalidates when `extra_paths` or any file mtime changes — `skills/loader.py:209`. `invalidate_cache()` forces a full re-parse.
 
 ---
 
-### SUG-006 — Add `TYPE_CHECKING` guard for ToolBox in base.py (fixes AUDIT ISSUE-016)
+### SUG-006 — TYPE_CHECKING guard for ToolBox in base.py ✅ DONE
 
-Replace `List[Any]` with `List["ToolBox"]` inside a `TYPE_CHECKING` guard to improve static analysis without introducing a circular import:
-
-```python
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ovos_plugin_manager.templates.agent_tools import ToolBox
-```
+`AgenticLoopEngine.toolboxes` is now typed as `List["ToolBox"]` via a `TYPE_CHECKING` guard — `base.py:17`. No runtime circular import.
 
 ---
 

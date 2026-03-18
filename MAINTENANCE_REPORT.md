@@ -1,5 +1,20 @@
 # MAINTENANCE_REPORT — ovos-agentic-loop
 
+## 2026-03-18 — Fix remaining open issues
+
+- **AI Model**: claude-sonnet-4-6
+- **Actions Taken**:
+  - Fixed ISSUE-016: `AgenticLoopEngine.toolboxes` now typed as `List["ToolBox"]` via `TYPE_CHECKING` guard — `base.py:17`
+  - Fixed ISSUE-019: `SkillMDLoader.load()` now caches parsed entries; invalidates on `extra_paths` change or file mtime change — `skills/loader.py:209`; added `invalidate_cache()` method
+  - Added mock-based tests for ISSUE-010 (`_discover_via_entry_points` — 4 tests), ISSUE-011 (`_discover_via_package_data` — 3 tests), ISSUE-012 (`_discover_agents_md_paths` — 3 tests), ISSUE-013 (`_load_toolboxes_from_config` OPM path — 3 tests), ISSUE-014 (`_load_brain` OPM path — 4 tests)
+  - Added `SkillMDLoader` cache invalidation tests (4 tests)
+  - Rewrote `AUDIT.md`: removed all RESOLVED sections; 5 open/accepted issues remain
+  - Updated `SUGGESTIONS.md`: marked SUG-005 and SUG-006 as DONE
+  - Updated test count: 246 → 266
+- **Oversight**: User-directed task
+
+
+
 ## 2026-03-18 — GitHub publishing preparation
 
 - **AI Model**: claude-sonnet-4-6

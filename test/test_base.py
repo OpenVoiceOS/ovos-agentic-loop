@@ -12,7 +12,7 @@
 
 """Unit tests for AgenticLoopEngine base class."""
 from typing import List, Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -66,3 +66,44 @@ class TestAbstractEnforcement:
     def test_cannot_instantiate_base_directly(self) -> None:
         with pytest.raises(TypeError):
             AgenticLoopEngine()  # type: ignore[abstract]
+
+
+# ---------------------------------------------------------------------------
+# _load_toolboxes_from_config — OPM plugin path (ISSUE-013)
+# ---------------------------------------------------------------------------
+
+class TestLoadToolboxesFromConfigOPM:
+    def test_loads_toolbox_via_opm(self) -> None:
+        mock_toolbox = MagicMock()
+        mock_toolbox.tool_json_list = []
+
+        with patch.dict("sys.modules", {
+            "ovos_plugin_manager.agent_tools": MagicMock(
+                load_toolbox_plugin=MagicMock(return_value=mock_toolbox)
+            )
+        }):
+            engine = _ConcreteLoopEngine(config={"toolboxes": ["my-toolbox"]})
+
+        assert mock_toolbox in engine.toolboxes
+
+    def test_skips_gracefully_when_opm_unavailable(self) -> None:
+        import sys
+        # Ensure import fails for agent_tools
+        with patch.dict("sys.modules", {"ovos_plugin_manager.agent_tools": None}):
+            engine = _ConcreteLoopEngine(config={"toolboxes": ["my-toolbox"]})
+        assert engine.toolboxes == []
+
+    def test_warns_on_toolbox_load_failure(self, capsys: "pytest.CaptureFixture") -> None:
+        mock_loader = MagicMock(side_effect=RuntimeError("load failed"))
+
+        with patch.dict("sys.modules", {
+            "ovos_plugin_manager.agent_tools": MagicMock(
+                load_toolbox_plugin=mock_loader
+            )
+        }):
+            engine = _ConcreteLoopEngine(config={"toolboxes": ["bad-tb"]})
+
+        assert engine.toolboxes == []
+        # OVOS LOG writes to stdout; confirm the warning was emitted.
+        captured = capsys.readouterr()
+        assert "bad-tb" in captured.out

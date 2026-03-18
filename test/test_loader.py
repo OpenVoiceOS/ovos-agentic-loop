@@ -13,11 +13,18 @@
 """Unit tests for SkillMDLoader and _parse_skill_md."""
 import os
 import textwrap
+import time
 from typing import List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ovos_agentic_loop.skills.loader import SkillMDLoader, _parse_skill_md
+from ovos_agentic_loop.skills.loader import (
+    SkillMDLoader,
+    _discover_via_entry_points,
+    _discover_via_package_data,
+    _parse_skill_md,
+)
 
 
 VALID_SKILL_MD = textwrap.dedent("""\
@@ -102,3 +109,122 @@ class TestSkillMDLoader:
         # Package-data and entry-point discovery may find nothing in a bare env.
         entries = loader.load()
         assert isinstance(entries, list)
+
+    def test_load_caches_result(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+        loader = SkillMDLoader(extra_paths=[str(p)])
+        first = loader.load()
+        second = loader.load()
+        assert first == second
+
+    def test_load_invalidated_when_mtime_changes(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+        loader = SkillMDLoader(extra_paths=[str(p)])
+        first = loader.load()
+        # Touch the file to update mtime.
+        time.sleep(0.01)
+        p.write_text(VALID_SKILL_MD.replace("web-search", "updated-search"), encoding="utf-8")
+        second = loader.load()
+        assert second[0].name == "updated-search"
+        assert first[0].name != second[0].name
+
+    def test_invalidate_cache_forces_reparse(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+        loader = SkillMDLoader(extra_paths=[str(p)])
+        loader.load()
+        loader.invalidate_cache()
+        assert loader._cache is None
+        entries = loader.load()
+        assert len(entries) == 1
+
+
+# ---------------------------------------------------------------------------
+# _discover_via_entry_points (ISSUE-010)
+# ---------------------------------------------------------------------------
+
+class TestDiscoverViaEntryPoints:
+    def test_returns_path_from_valid_entry_point(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+
+        ep = MagicMock()
+        ep.load.return_value = str(p)
+
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.entry_points",
+                   return_value=[ep]):
+            paths = _discover_via_entry_points()
+        assert str(p) in paths
+
+    def test_falls_back_to_ep_value_on_load_error(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+
+        ep = MagicMock()
+        ep.load.side_effect = ImportError("broken")
+        ep.value = str(p)
+
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.entry_points",
+                   return_value=[ep]):
+            paths = _discover_via_entry_points()
+        assert str(p) in paths
+
+    def test_ignores_nonexistent_path(self, tmp_path: "Path") -> None:
+        ep = MagicMock()
+        ep.load.return_value = str(tmp_path / "missing.md")
+
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.entry_points",
+                   return_value=[ep]):
+            paths = _discover_via_entry_points()
+        assert paths == []
+
+    def test_returns_empty_on_metadata_error(self) -> None:
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.entry_points",
+                   side_effect=Exception("no metadata")):
+            paths = _discover_via_entry_points()
+        assert paths == []
+
+
+# ---------------------------------------------------------------------------
+# _discover_via_package_data (ISSUE-011)
+# ---------------------------------------------------------------------------
+
+class TestDiscoverViaPackageData:
+    def test_returns_skill_md_paths_from_distributions(self, tmp_path: "Path") -> None:
+        p = tmp_path / "SKILL.md"
+        p.write_text(VALID_SKILL_MD, encoding="utf-8")
+
+        mock_file = MagicMock()
+        mock_file.name = "SKILL.md"
+        mock_file.locate.return_value.resolve.return_value = p
+
+        mock_dist = MagicMock()
+        mock_dist.files = [mock_file]
+
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.distributions",
+                   return_value=[mock_dist]):
+            paths = _discover_via_package_data()
+        assert str(p) in paths
+
+    def test_skips_nonexistent_file(self, tmp_path: "Path") -> None:
+        p = tmp_path / "NONEXISTENT.md"  # not created on disk
+
+        mock_file = MagicMock()
+        mock_file.name = "SKILL.md"
+        mock_file.locate.return_value.resolve.return_value = p
+
+        mock_dist = MagicMock()
+        mock_dist.files = [mock_file]
+
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.distributions",
+                   return_value=[mock_dist]):
+            paths = _discover_via_package_data()
+        assert paths == []
+
+    def test_returns_empty_on_metadata_error(self) -> None:
+        with patch("ovos_agentic_loop.skills.loader.importlib.metadata.distributions",
+                   side_effect=Exception("broken")):
+            paths = _discover_via_package_data()
+        assert paths == []

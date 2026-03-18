@@ -184,6 +184,9 @@ class SkillMDLoader:
                 include regardless of entry-point or package-data discovery.
         """
         self.extra_paths: List[str] = list(extra_paths or [])
+        self._cache: Optional[List[SkillMDEntry]] = None
+        self._cache_extra_paths: List[str] = []
+        self._cache_mtimes: Dict[str, float] = {}
 
     def discover_paths(self) -> List[str]:
         """
@@ -209,13 +212,42 @@ class SkillMDLoader:
         """
         Discover and parse all SKILL.md files.
 
+        Results are cached and reused as long as ``extra_paths`` and file
+        modification times are unchanged.  Call ``invalidate_cache()`` to
+        force a re-parse.
+
         Returns:
             List of successfully parsed ``SkillMDEntry`` objects.  Files that
             fail to parse are silently skipped.
         """
+        paths = self.discover_paths()
+        current_mtimes: Dict[str, float] = {}
+        for p in paths:
+            try:
+                current_mtimes[p] = os.path.getmtime(p)
+            except OSError:
+                current_mtimes[p] = -1.0
+
+        if (
+            self._cache is not None
+            and self._cache_extra_paths == self.extra_paths
+            and self._cache_mtimes == current_mtimes
+        ):
+            return list(self._cache)
+
         entries: List[SkillMDEntry] = []
-        for path in self.discover_paths():
+        for path in paths:
             entry = _parse_skill_md(path)
             if entry is not None:
                 entries.append(entry)
-        return entries
+
+        self._cache = entries
+        self._cache_extra_paths = list(self.extra_paths)
+        self._cache_mtimes = current_mtimes
+        return list(entries)
+
+    def invalidate_cache(self) -> None:
+        """Clear the parsed-entry cache, forcing a full re-parse on the next ``load()`` call."""
+        self._cache = None
+        self._cache_extra_paths = []
+        self._cache_mtimes = {}

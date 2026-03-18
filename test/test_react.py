@@ -215,6 +215,59 @@ class TestExtractJsonObject:
         assert args["filter"] == {"date": "today"}
 
 
+# ---------------------------------------------------------------------------
+# _load_brain — OPM path (ISSUE-014)
+# ---------------------------------------------------------------------------
+
+class TestLoadBrainOPM:
+    def test_loads_brain_from_opm(self) -> None:
+        mock_brain = MagicMock()
+
+        with patch.dict("sys.modules", {
+            "ovos_plugin_manager.agents": MagicMock(
+                load_chat_plugin=MagicMock(return_value=mock_brain)
+            )
+        }):
+            engine = ReActLoopEngine(config={"brain": "my-brain-plugin"})
+            brain = engine.brain  # triggers lazy load
+
+        assert brain is mock_brain
+
+    def test_warns_on_brain_load_failure(self, capsys: "pytest.CaptureFixture") -> None:
+        with patch.dict("sys.modules", {
+            "ovos_plugin_manager.agents": MagicMock(
+                load_chat_plugin=MagicMock(side_effect=RuntimeError("not found"))
+            )
+        }):
+            engine = ReActLoopEngine(config={"brain": "missing-brain"})
+            brain = engine.brain
+
+        assert brain is None
+        captured = capsys.readouterr()
+        assert "missing-brain" in captured.out
+
+    def test_no_brain_config_returns_none(self) -> None:
+        engine = ReActLoopEngine(config={})
+        assert engine.brain is None
+
+    def test_brain_injected_into_toolbox_after_opm_load(self) -> None:
+        mock_brain = MagicMock()
+        tb = MagicMock()
+        tb.set_brain = MagicMock()
+        tb.tool_json_list = []
+
+        with patch.dict("sys.modules", {
+            "ovos_plugin_manager.agents": MagicMock(
+                load_chat_plugin=MagicMock(return_value=mock_brain)
+            )
+        }):
+            engine = ReActLoopEngine(config={"brain": "my-brain"})
+            engine.load_toolboxes([tb])
+            _ = engine.brain  # triggers lazy load + injection
+
+        tb.set_brain.assert_called_with(mock_brain)
+
+
 class TestBrainInjection:
     def test_set_brain_propagates_to_toolbox(self):
         from ovos_agentic_loop.react import ReActLoopEngine

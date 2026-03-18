@@ -54,4 +54,4 @@ ovos-agents-md-context-plugin = "ovos_agentic_loop.context.agents_md:AgentsMDCon
 
 ## Tests
 
-246 unit tests in `test/`. Run: `uv run pytest test/ -v`
+266 unit tests in `test/`. Run: `uv run pytest test/ -v`
