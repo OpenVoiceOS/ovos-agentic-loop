@@ -21,6 +21,11 @@ Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
+e2e = [
+    "ovoscope",
+    "ovos-persona",
+    "ovos-solver-failure-plugin",
+]
 web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
