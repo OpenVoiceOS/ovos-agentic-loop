@@ -57,8 +57,15 @@ def _patched_load_brain(self):
     return _FakeBrain()
 
 
-# Patch before any module-level MiniCroft is created.
-ChainOfThoughtEngine._load_brain = _patched_load_brain
+_original_load_brain = ChainOfThoughtEngine._load_brain
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _patch_chain_of_thought_brain():
+    """Patch ChainOfThoughtEngine._load_brain for the duration of this module only."""
+    ChainOfThoughtEngine._load_brain = _patched_load_brain
+    yield
+    ChainOfThoughtEngine._load_brain = _original_load_brain
 
 # ---------------------------------------------------------------------------
 # Persona JSON setup

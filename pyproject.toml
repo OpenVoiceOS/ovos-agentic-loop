@@ -20,10 +20,11 @@ Homepage = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
-e2e = [
+test = [
+    "pytest",
+    "pytest-cov",
     "ovoscope",
-    "ovos-persona",
+    "ovos-persona @ git+https://github.com/OpenVoiceOS/ovos-persona@dev",
     "ovos-solver-failure-plugin",
 ]
 web = ["duckduckgo-search>=6.0"]
