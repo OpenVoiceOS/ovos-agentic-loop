@@ -68,7 +68,7 @@ def main() -> None:
 
     engine = NativeToolCallEngine({"max_iterations": 5})
     engine.set_brain(brain)
-    engine.load_toolboxes([MathToolBox(toolbox_id="ovos-math-tools")])
+    engine.load_toolboxes([MathToolBox()])
 
     print("Calculator agent — ask a math question (Ctrl-C to quit).\n")
     try:

@@ -15,4 +15,4 @@ jobs:
       test_path: 'test/'
       install_extras: ''
       min_coverage: 0
-      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-plugin-manager@feat/agent-tool-calling"
+      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-plugin-manager@feat/agent-tool-calling git+https://github.com/OpenVoiceOS/ovos-openai-plugin@opm-agents"

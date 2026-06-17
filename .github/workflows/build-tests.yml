@@ -14,5 +14,6 @@ jobs:
       install_extras: 'test'
       test_path: 'test'
       # NativeToolCallEngine needs the tool-calling contract (ToolCall, tools=,
-      # supports_tools). Install the plugin-manager branch until it releases.
-      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-plugin-manager@feat/agent-tool-calling"
+      # supports_tools) and the real-stack e2e uses the modern ovos_openai_plugin
+      # ChatEngine as its brain. Install both unreleased branches until they release.
+      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-plugin-manager@feat/agent-tool-calling git+https://github.com/OpenVoiceOS/ovos-openai-plugin@opm-agents"
