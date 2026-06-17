@@ -11,7 +11,8 @@
 | Use-case signal | Recommended loop |
 | :--- | :--- |
 | No tools, pure reasoning / arithmetic / logic | **Chain-of-Thought** |
-| Single-turn tool use, general assistant | **ReAct** |
+| Tool use with a brain that has native function-calling | **Native Tool-Call** |
+| Single-turn tool use, any text brain (no native tools) | **ReAct** |
 | Multi-step task with distinct, sequenced sub-goals | **Plan-and-Execute** |
 | Correctness matters; agent may fail on first attempt | **Reflexion** |
 | Multi-hop knowledge question (chain of facts) | **Self-Ask** |
@@ -20,7 +21,23 @@
 
 The loops are not mutually exclusive.  Reflexion *wraps* ReAct internally, so
 it inherits every ReAct capability while adding the self-correction outer loop.
-Plan-and-Execute uses its own mini-ReAct sub-loop per step.
+Plan-and-Execute uses its own mini-ReAct sub-loop per step. **Native Tool-Call**
+subclasses ReAct and falls back to it when the brain has no native function-calling.
+
+---
+
+## Native Tool-Call — provider-native function calling
+
+**Entry point:** `ovos-native-toolcall-loop`
+**Class:** `NativeToolCallEngine` — `ovos_agentic_loop/native_toolcall.py`
+**Deep dive:** [native-toolcall-loop.md](native-toolcall-loop.md)
+
+Hands the toolboxes to the brain via `continue_chat(tools=...)` and reads structured
+`AgentMessage.tool_calls` back, executing each and feeding results as
+`MessageRole.TOOL` messages. Requires a brain with `supports_tools = True` (e.g.
+`ovos-openai-plugin`); otherwise it transparently falls back to the ReAct text loop.
+Prefer this over ReAct whenever the brain supports native tool-calling — it is more
+reliable and cheaper (the provider parses the calls, not a regex).
 
 ---
 

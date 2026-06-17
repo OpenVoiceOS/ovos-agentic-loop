@@ -25,6 +25,7 @@ web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
 ovos-react-loop            = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
+ovos-native-toolcall-loop  = "ovos_agentic_loop.factory:NativeToolCallEnginePlugin"
 ovos-plan-execute-loop     = "ovos_agentic_loop.factory:PlanAndExecuteEnginePlugin"
 ovos-reflexion-loop        = "ovos_agentic_loop.factory:ReflexionEnginePlugin"
 ovos-self-ask-loop         = "ovos_agentic_loop.factory:SelfAskEnginePlugin"
