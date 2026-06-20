@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a1) (2026-06-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.0a1...0.2.1a1)
+
+**Merged pull requests:**
+
+- fix: surface tool-execution errors as observations so the loop can recover [\#7](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/7) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.0a1) (2026-06-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.1.1a1...0.2.0a1)
