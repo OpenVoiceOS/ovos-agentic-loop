@@ -1,12 +1,20 @@
 # Changelog
 
-## [0.1.1a1](https://github.com/TigreGotico/ovos-agentic-loop/tree/0.1.1a1) (2026-06-10)
+## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.0a1) (2026-06-20)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-agentic-loop/compare/0.1.0...0.1.1a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.1.1a1...0.2.0a1)
 
 **Merged pull requests:**
 
-- fix: make SkillMDLoader tests hermetic [\#2](https://github.com/TigreGotico/ovos-agentic-loop/pull/2) ([JarbasAl](https://github.com/JarbasAl))
+- feat: NativeToolCallEngine — provider-native tool-calling loop [\#5](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/5) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.1a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.1.1a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.1.0...0.1.1a1)
+
+**Merged pull requests:**
+
+- fix: make SkillMDLoader tests hermetic [\#2](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/2) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
