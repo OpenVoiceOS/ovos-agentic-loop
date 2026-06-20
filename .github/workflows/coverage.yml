@@ -15,4 +15,6 @@ jobs:
       test_path: 'test/'
       install_extras: ''
       min_coverage: 0
-      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-plugin-manager@feat/agent-tool-calling git+https://github.com/OpenVoiceOS/ovos-openai-plugin@opm-agents"
+      # opm tool-calling contract is released (>=2.7.0a1, pinned in pyproject); the
+      # real-stack e2e brain still needs ovos-openai-plugin's opm-agents branch until it releases.
+      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-openai-plugin@opm-agents"
