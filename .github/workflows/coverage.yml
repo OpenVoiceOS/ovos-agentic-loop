@@ -13,5 +13,5 @@ jobs:
       python_version: '3.11'
       coverage_source: 'ovos_agentic_loop'
       test_path: 'test/'
-      install_extras: 'test'
+      test_extras: 'test'  # install .[test] (pulls the ovos-openai-plugin e2e brain)
       min_coverage: 0
