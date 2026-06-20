@@ -11,7 +11,7 @@ license = "Apache-2.0"
 authors = [{name = "OpenVoiceOS", email = "openvoiceos@gmail.com"}]
 requires-python = ">=3.10"
 dependencies = [
-    "ovos-plugin-manager>=2.3.0a1,<3.0.0",
+    "ovos-plugin-manager>=2.7.0a1,<3.0.0",
     "pydantic>=2.0.0",
 ]
 
@@ -20,11 +20,14 @@ Homepage = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
+# ovos-openai-plugin is the reference tool-capable ChatEngine used by the
+# real-stack native tool-call integration test (test/test_native_toolcall_e2e.py).
+test = ["pytest", "pytest-cov", "ovos-openai-plugin>=2.0.8a1", "requests"]
 web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
 ovos-react-loop            = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
+ovos-native-toolcall-loop  = "ovos_agentic_loop.factory:NativeToolCallEnginePlugin"
 ovos-plan-execute-loop     = "ovos_agentic_loop.factory:PlanAndExecuteEnginePlugin"
 ovos-reflexion-loop        = "ovos_agentic_loop.factory:ReflexionEnginePlugin"
 ovos-self-ask-loop         = "ovos_agentic_loop.factory:SelfAskEnginePlugin"
