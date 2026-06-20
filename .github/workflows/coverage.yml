@@ -13,8 +13,5 @@ jobs:
       python_version: '3.11'
       coverage_source: 'ovos_agentic_loop'
       test_path: 'test/'
-      install_extras: ''
+      install_extras: 'test'
       min_coverage: 0
-      # opm tool-calling contract is released (>=2.7.0a1, pinned in pyproject); the
-      # real-stack e2e brain still needs ovos-openai-plugin's opm-agents branch until it releases.
-      pre_install_pip: "git+https://github.com/OpenVoiceOS/ovos-openai-plugin@opm-agents"
