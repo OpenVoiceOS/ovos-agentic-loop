@@ -23,6 +23,8 @@ All components integrate with `ovos-plugin-manager` (OPM) via entry points and a
 | `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | — (abstract base) | — |
 | `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete) | — |
 | `ReActLoopEnginePlugin` | `ovos_agentic_loop/factory.py:8` | `opm.agents.chat` | `ovos-react-loop` |
+| `NativeToolCallEngine` | `ovos_agentic_loop/native_toolcall.py` | — (concrete) | — |
+| `NativeToolCallEnginePlugin` | `ovos_agentic_loop/factory.py` | `opm.agents.chat` | `ovos-native-toolcall-loop` |
 | `PlanAndExecuteEngine` | `ovos_agentic_loop/plan_execute.py:108` | — (concrete) | — |
 | `PlanAndExecuteEnginePlugin` | `ovos_agentic_loop/factory.py:27` | `opm.agents.chat` | `ovos-plan-execute-loop` |
 | `ReflexionEngine` | `ovos_agentic_loop/reflexion.py:82` | — (concrete) | — |

@@ -40,6 +40,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine, MessageRole
+from ovos_utils.log import LOG
 
 from ovos_agentic_loop.base import AgenticLoopEngine
 from ovos_agentic_loop.react import _build_react_system, _extract_final_answer, _parse_action
@@ -222,11 +223,19 @@ class PlanAndExecuteEngine(AgenticLoopEngine):
         for tb in self.toolboxes:
             try:
                 tool = tb.get_tool(tool_name)
-                if tool is not None:
-                    result = tb.call_tool(tool_name, args)
-                    return str(result)
-            except Exception:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001 - lookup failed; try the next toolbox
+                LOG.debug(f"toolbox {tb} lookup for '{tool_name}' failed: {e}")
                 continue
+            if tool is None:
+                continue
+            try:
+                result = tb.call_tool(tool_name, args)
+                return str(result)
+            except Exception as e:  # noqa: BLE001 - tool found but raised
+                # Surface the real error as the observation so the loop can recover
+                # instead of being told the tool was "not found".
+                LOG.error(f"tool '{tool_name}' raised: {e}")
+                return f"Error: tool '{tool_name}' failed: {e}"
         return f"Error: tool '{tool_name}' not found."
 
     def _execute_step(self, step: str, plan: str, completed: str,

@@ -11,7 +11,7 @@ license = "Apache-2.0"
 authors = [{name = "JarbasAi", email = "jarbasai@mailfence.com"}]
 requires-python = ">=3.10"
 dependencies = [
-    "ovos-plugin-manager>=2.3.0a1,<3.0.0",
+    "ovos-plugin-manager>=2.7.0a1,<3.0.0",
     "pydantic>=2.0.0",
 ]
 
@@ -26,12 +26,15 @@ test = [
     "pytest-timeout>=2.0.0",
     "ovoscope>=0.13.1",
     "ovos-persona>=0.9.0a3",
-    "ovos-solver-failure-plugin",
+    "ovos-openai-plugin>=2.0.8a1", 
+    "ovos-solver-failure-plugin", 
+    "requests",
 ]
 web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
 ovos-react-loop            = "ovos_agentic_loop.factory:ReActLoopEnginePlugin"
+ovos-native-toolcall-loop  = "ovos_agentic_loop.factory:NativeToolCallEnginePlugin"
 ovos-plan-execute-loop     = "ovos_agentic_loop.factory:PlanAndExecuteEnginePlugin"
 ovos-reflexion-loop        = "ovos_agentic_loop.factory:ReflexionEnginePlugin"
 ovos-self-ask-loop         = "ovos_agentic_loop.factory:SelfAskEnginePlugin"

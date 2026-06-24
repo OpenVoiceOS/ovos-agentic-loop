@@ -13,6 +13,7 @@
 """OPM entry-point factory classes for ovos-agentic-loop."""
 from ovos_agentic_loop.chain_of_thought import ChainOfThoughtEngine
 from ovos_agentic_loop.critic import CRITICEngine
+from ovos_agentic_loop.native_toolcall import NativeToolCallEngine
 from ovos_agentic_loop.plan_execute import PlanAndExecuteEngine
 from ovos_agentic_loop.react import ReActLoopEngine
 from ovos_agentic_loop.reflexion import ReflexionEngine
@@ -21,6 +22,7 @@ from ovos_agentic_loop.tree_of_thoughts import TreeOfThoughtsEngine
 
 __all__ = [
     "ReActLoopEnginePlugin",
+    "NativeToolCallEnginePlugin",
     "PlanAndExecuteEnginePlugin",
     "ReflexionEnginePlugin",
     "SelfAskEnginePlugin",
@@ -28,6 +30,18 @@ __all__ = [
     "CRITICEnginePlugin",
     "TreeOfThoughtsEnginePlugin",
 ]
+
+
+class NativeToolCallEnginePlugin(NativeToolCallEngine):
+    """
+    OPM-registered plugin class for the native tool-calling loop engine.
+
+    Uses the brain's native ``tool_calls`` when it advertises ``supports_tools``,
+    falling back to the ReAct text loop otherwise.
+
+    Entry point group: ``opm.agents.chat``
+    Entry point name:  ``ovos-native-toolcall-loop``
+    """
 
 
 class ReActLoopEnginePlugin(ReActLoopEngine):
