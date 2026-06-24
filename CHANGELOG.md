@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a3) (2026-06-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a2...0.2.1a3)
+
+**Merged pull requests:**
+
+- test: full-pipeline e2e persona test \(ovoscope\) [\#4](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/4) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.1a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a2) (2026-06-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a1...0.2.1a2)
