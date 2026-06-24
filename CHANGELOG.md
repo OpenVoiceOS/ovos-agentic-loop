@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a2) (2026-06-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a1...0.2.1a2)
+
+**Merged pull requests:**
+
+- chore: add Apache-2.0 LICENSE file [\#9](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/9) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.1a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a1) (2026-06-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.0a1...0.2.1a1)
