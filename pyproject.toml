@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "AgenticLoopEngine base and ReAct implementation for OVOS, with SKILL.md and AGENTS.md runtime consumption"
 readme = "README.md"
 license = "Apache-2.0"
-authors = [{name = "OpenVoiceOS", email = "openvoiceos@gmail.com"}]
+authors = [{name = "JarbasAi", email = "jarbasai@mailfence.com"}]
 requires-python = ">=3.10"
 dependencies = [
     "ovos-plugin-manager>=2.7.0a1,<3.0.0",
@@ -16,13 +16,20 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
-Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
+Homepage = "https://github.com/TigreGotico/ovos-agentic-loop"
+Repository = "https://github.com/TigreGotico/ovos-agentic-loop"
 
 [project.optional-dependencies]
-# ovos-openai-plugin is the reference tool-capable ChatEngine used by the
-# real-stack native tool-call integration test (test/test_native_toolcall_e2e.py).
-test = ["pytest", "pytest-cov", "ovos-openai-plugin>=2.0.8a1", "requests"]
+test = [
+    "pytest>=7.0.0,<9",
+    "pytest-cov",
+    "pytest-timeout>=2.0.0",
+    "ovoscope>=0.13.1",
+    "ovos-persona>=0.9.0a3",
+    "ovos-openai-plugin>=2.0.8a1", 
+    "ovos-solver-failure-plugin", 
+    "requests",
+]
 web = ["duckduckgo-search>=6.0"]
 
 [project.entry-points."opm.agents.chat"]
