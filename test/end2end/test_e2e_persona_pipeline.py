@@ -3,7 +3,7 @@
 Proves:
   1. An utterance flows through the real OVOS intent pipeline, hits the persona
      pipeline plugin, reaches the ovos-chain-of-thought-loop agent, and produces
-     a ``speak`` message.
+     an ``ovos.utterance.speak`` message.
   2. Per-session memory is recorded by the live PersonaService.
 
 No network access, no LLM downloads.  The loop's inner brain is monkeypatched
@@ -157,7 +157,8 @@ def mc():
 
 class TestLooperPersonaSpeaks:
     """The utterance must traverse the full OVOS intent pipeline, reach the
-    chain-of-thought loop agent, and produce a non-empty ``speak`` message."""
+    chain-of-thought loop agent, and produce a non-empty ``ovos.utterance.speak``
+    message."""
 
     def test_pipeline_produces_speak(self, mc):
         sess = Session(session_id="loop-e2e-speak-1")
@@ -166,10 +167,10 @@ class TestLooperPersonaSpeaks:
         messages = _drive_utterance(mc, sess, "hello there", timeout=30)
 
         msg_types = [m.msg_type for m in messages]
-        speak_msgs = [m for m in messages if m.msg_type == "speak"]
+        speak_msgs = [m for m in messages if m.msg_type == "ovos.utterance.speak"]
 
         assert speak_msgs, (
-            f"Expected at least one 'speak' message; got msg_types: {msg_types}"
+            f"Expected at least one 'ovos.utterance.speak' message; got msg_types: {msg_types}"
         )
         spoken = speak_msgs[0].data.get("utterance", "")
         assert spoken.strip(), (
@@ -183,8 +184,8 @@ class TestLooperPersonaSpeaks:
 
         messages = _drive_utterance(mc, sess, "what can you do", timeout=30)
 
-        speak_msgs = [m for m in messages if m.msg_type == "speak"]
-        assert speak_msgs, "No speak message produced by the loop persona"
+        speak_msgs = [m for m in messages if m.msg_type == "ovos.utterance.speak"]
+        assert speak_msgs, "No ovos.utterance.speak message produced by the loop persona"
 
         spoken = speak_msgs[0].data.get("utterance", "")
         assert spoken.strip(), f"speak message is empty; data={speak_msgs[0].data}"
