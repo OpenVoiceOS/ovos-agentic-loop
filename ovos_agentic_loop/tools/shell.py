@@ -62,7 +62,8 @@ class ShellToolBox(ToolBox):
 
     toolbox_id = "ovos-shell-tools"
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 bus: Optional[Any] = None) -> None:
         """
         Initialise the toolbox.
 
@@ -72,7 +73,7 @@ class ShellToolBox(ToolBox):
                 ``max_timeout`` (int, default ``120``).
         """
         self.config: Dict[str, Any] = config or {}
-        super().__init__(toolbox_id=self.toolbox_id)
+        super().__init__(config=config, bus=bus)
 
     def _run_command(self, args: RunCommandArgs) -> RunCommandOutput:
         """

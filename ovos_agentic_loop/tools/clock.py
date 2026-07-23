@@ -42,7 +42,8 @@ class ClockToolBox(ToolBox):
 
     toolbox_id = "ovos-clock-tools"
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 bus: Optional[Any] = None) -> None:
         """
         Initialise the toolbox.
 
@@ -50,7 +51,7 @@ class ClockToolBox(ToolBox):
             config: Plugin configuration dict (currently unused).
         """
         self.config: Dict[str, Any] = config or {}
-        super().__init__(toolbox_id=self.toolbox_id)
+        super().__init__(config=config, bus=bus)
 
     def _get_current_datetime(self, args: GetCurrentDatetimeArgs) -> GetCurrentDatetimeOutput:
         """

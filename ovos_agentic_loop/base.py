@@ -111,11 +111,11 @@ class AgenticLoopEngine(ChatEngine):
                       "skipping toolbox auto-load")
             return
 
+        bus = getattr(self, "bus", None)
         for tid in toolbox_ids:
             try:
-                plugin = load_toolbox_plugin(tid, config=self.config.get(tid, {}))
-                if plugin is not None:
-                    self.toolboxes.append(plugin)
+                cls = load_toolbox_plugin(tid)
+                self.toolboxes.append(cls(config=self.config.get(tid, {}), bus=bus))
             except Exception as exc:  # noqa: BLE001
                 LOG.warning(f"AgenticLoopEngine: failed to load toolbox '{tid}': {exc}")
 

@@ -81,17 +81,18 @@ class SkillMDToolBox(ToolBox):
     toolbox_id = "ovos-skill-md-toolbox"
 
     def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 bus: Optional[Any] = None,
                  brain: Optional[ChatEngine] = None) -> None:
         """
         Initialise the toolbox.
 
         Args:
             config: Plugin configuration dict.
+            bus: Optional message bus connection, forwarded to the base class.
             brain: ChatEngine used to execute skill invocations.  Must be set
                 before any tool is called.
         """
-        super().__init__(toolbox_id=self.toolbox_id)
-        self.config: Dict[str, Any] = config or {}
+        super().__init__(config=config, bus=bus)
         self._brain: Optional[ChatEngine] = brain
         extra = self.config.get("extra_skill_md_paths", [])
         self._loader = SkillMDLoader(extra_paths=extra)

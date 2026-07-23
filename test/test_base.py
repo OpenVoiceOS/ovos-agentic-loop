@@ -74,17 +74,20 @@ class TestAbstractEnforcement:
 
 class TestLoadToolboxesFromConfigOPM:
     def test_loads_toolbox_via_opm(self) -> None:
+        # load_toolbox_plugin returns an uninstantiated class (per the shared
+        # ToolBox contract); the engine instantiates it with `cls(config=cfg, bus=bus)`.
         mock_toolbox = MagicMock()
-        mock_toolbox.tool_json_list = []
+        mock_toolbox_cls = MagicMock(return_value=mock_toolbox)
 
         with patch.dict("sys.modules", {
             "ovos_plugin_manager.agent_tools": MagicMock(
-                load_toolbox_plugin=MagicMock(return_value=mock_toolbox)
+                load_toolbox_plugin=MagicMock(return_value=mock_toolbox_cls)
             )
         }):
             engine = _ConcreteLoopEngine(config={"toolboxes": ["my-toolbox"]})
 
         assert mock_toolbox in engine.toolboxes
+        mock_toolbox_cls.assert_called_once_with(config={}, bus=None)
 
     def test_skips_gracefully_when_opm_unavailable(self) -> None:
         import sys
