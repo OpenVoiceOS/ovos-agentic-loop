@@ -306,14 +306,17 @@ class TestClockToolBox:
 
 
 # ---------------------------------------------------------------------------
-# ToolBox construction contract: class-level toolbox_id, config+bus forwarding
+# ToolBox construction contract: toolbox_id supplied by the plugin via
+# super().__init__(), config+bus forwarding
 # ---------------------------------------------------------------------------
 
 class TestToolBoxContract:
     """All six built-in toolboxes must follow the shared ToolBox contract:
 
-    - ``toolbox_id`` is a class attribute matching the plugin's entry-point
-      name declared in ``pyproject.toml``.
+    - ``toolbox_id`` is passed by the plugin's own ``__init__`` to
+      ``super().__init__(toolbox_id=..., config=config, bus=bus)`` and matches
+      the plugin's entry-point name declared in ``pyproject.toml``. It is a
+      constructor parameter, not a class attribute.
     - ``__init__(self, config=None, bus=None)`` forwards both to
       ``ToolBox.__init__`` (config is stored, bus triggers ``bind()``).
     """
@@ -328,11 +331,10 @@ class TestToolBoxContract:
     }
 
     @pytest.mark.parametrize("cls,expected_id", list(EXPECTED_IDS.items()))
-    def test_toolbox_id_is_class_attribute(self, cls, expected_id) -> None:
-        """toolbox_id is declared on the class and matches the entry-point name."""
-        assert cls.toolbox_id == expected_id
-        # accessible without instantiation
-        assert getattr(cls, "toolbox_id", None) == expected_id
+    def test_toolbox_id_set_after_construction(self, cls, expected_id) -> None:
+        """toolbox_id is set on the instance after construction and matches the entry-point name."""
+        box = cls()
+        assert box.toolbox_id == expected_id
 
     @pytest.mark.parametrize("cls", list(EXPECTED_IDS.keys()))
     def test_construct_with_no_args(self, cls) -> None:

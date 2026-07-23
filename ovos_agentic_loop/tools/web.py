@@ -48,8 +48,6 @@ class WebSearchToolBox(ToolBox):
     - ``duckduckgo-search>=6.0`` (install via ``pip install ovos-agentic-loop[web]``)
     """
 
-    toolbox_id = "ovos-web-search-tools"
-
     def __init__(self, config: Optional[Dict[str, Any]] = None,
                  bus: Optional[Any] = None) -> None:
         """
@@ -58,8 +56,7 @@ class WebSearchToolBox(ToolBox):
         Args:
             config: Plugin configuration dict (currently unused).
         """
-        self.config: Dict[str, Any] = config or {}
-        super().__init__(config=config, bus=bus)
+        super().__init__(toolbox_id="ovos-web-search-tools", config=config, bus=bus)
 
     def _web_search(self, args: WebSearchArgs) -> WebSearchOutput:
         """

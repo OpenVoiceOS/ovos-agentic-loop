@@ -78,8 +78,6 @@ class SkillMDToolBox(ToolBox):
     - ``extra_skill_md_paths`` (List[str]): Additional SKILL.md paths to load.
     """
 
-    toolbox_id = "ovos-skill-md-toolbox"
-
     def __init__(self, config: Optional[Dict[str, Any]] = None,
                  bus: Optional[Any] = None,
                  brain: Optional[ChatEngine] = None) -> None:
@@ -92,7 +90,7 @@ class SkillMDToolBox(ToolBox):
             brain: ChatEngine used to execute skill invocations.  Must be set
                 before any tool is called.
         """
-        super().__init__(config=config, bus=bus)
+        super().__init__(toolbox_id="ovos-skill-md-toolbox", config=config, bus=bus)
         self._brain: Optional[ChatEngine] = brain
         extra = self.config.get("extra_skill_md_paths", [])
         self._loader = SkillMDLoader(extra_paths=extra)
