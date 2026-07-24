@@ -111,9 +111,8 @@ class FileSystemToolBox(ToolBox):
     - ``allow_write`` (bool, default ``True``): Set to ``False`` for read-only agents.
     """
 
-    toolbox_id = "ovos-filesystem-tools"
-
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 bus: Optional[Any] = None) -> None:
         """
         Initialise the toolbox.
 
@@ -122,8 +121,7 @@ class FileSystemToolBox(ToolBox):
                 ``root_path`` (str, default ``"."``),
                 ``allow_write`` (bool, default ``True``).
         """
-        self.config: Dict[str, Any] = config or {}
-        super().__init__(toolbox_id=self.toolbox_id)
+        super().__init__(toolbox_id="ovos-filesystem-tools", config=config, bus=bus)
 
     @property
     def root_path(self) -> Path:

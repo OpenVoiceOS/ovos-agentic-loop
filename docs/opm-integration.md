@@ -7,7 +7,7 @@ This package uses three OPM entry-point groups:
 | Group | OPM Function | Purpose |
 | :--- | :--- | :--- |
 | `opm.agents.chat` | `find_chat_plugins()` / `load_chat_plugin()` | LLM chat engines (includes agentic loops) |
-| `opm.agents.toolbox` | `find_toolbox_plugin()` / `load_toolbox_plugin()` | Tool collections for agent loops |
+| `opm.agents.toolbox` | `find_toolbox_plugins()` | Tool collections for agent loops |
 | `opm.agents.memory` | (context manager discovery) | Conversation context builders |
 | `opm.agents.skill_md` | `importlib.metadata.entry_points()` | SKILL.md path registration (used by SkillMDLoader) |
 
@@ -70,7 +70,7 @@ my-custom-tools = "my_package.toolboxes:MyToolBox"
 }
 ```
 
-`AgenticLoopEngine._load_toolboxes_from_config()` — `base.py:50` — calls `load_toolbox_plugin(tid, config=self.config.get(tid, {}))` for each entry in `config["toolboxes"]`.
+`AgenticLoopEngine._load_toolboxes_from_config()` — `base.py:50` — calls `find_toolbox_plugins()` and instantiates the matching class as `cls(config=self.config.get(tid, {}), bus=bus)` for each entry in `config["toolboxes"]`.
 
 ---
 

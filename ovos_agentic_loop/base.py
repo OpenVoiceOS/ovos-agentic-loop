@@ -105,17 +105,18 @@ class AgenticLoopEngine(ChatEngine):
         if not toolbox_ids:
             return
         try:
-            from ovos_plugin_manager.agent_tools import load_toolbox_plugin
+            from ovos_plugin_manager.persona import find_toolbox_plugins
         except ImportError:
-            LOG.debug("AgenticLoopEngine: ovos_plugin_manager.agent_tools not available; "
+            LOG.debug("AgenticLoopEngine: ovos_plugin_manager.persona not available; "
                       "skipping toolbox auto-load")
             return
 
+        bus = getattr(self, "bus", None)
+        available = find_toolbox_plugins()
         for tid in toolbox_ids:
             try:
-                plugin = load_toolbox_plugin(tid, config=self.config.get(tid, {}))
-                if plugin is not None:
-                    self.toolboxes.append(plugin)
+                cls = available[tid]
+                self.toolboxes.append(cls(config=self.config.get(tid, {}), bus=bus))
             except Exception as exc:  # noqa: BLE001
                 LOG.warning(f"AgenticLoopEngine: failed to load toolbox '{tid}': {exc}")
 
