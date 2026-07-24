@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.2a1) (2026-07-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a3...0.2.2a1)
+
+**Merged pull requests:**
+
+- fix: adopt config/bus ToolBox constructor contract [\#12](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/12) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.1a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a3) (2026-06-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a2...0.2.1a3)
