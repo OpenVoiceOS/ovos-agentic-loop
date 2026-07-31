@@ -1,4 +1,4 @@
-# NativeToolCallEngine — Deep Dive
+# NativeToolCallEngine: Deep Dive
 
 ## Overview
 
@@ -16,7 +16,7 @@ execution. Only the loop in `continue_chat` differs.
 `NativeToolCallEnginePlugin` (`ovos_agentic_loop/factory.py`) is the OPM-registered
 wrapper. Entry point: **`ovos-native-toolcall-loop`** (group `opm.agents.chat`).
 
-## Native vs. ReAct — and the fallback
+## Native vs. ReAct, and the Fallback
 
 | | NativeToolCallEngine | ReActLoopEngine |
 | --- | --- | --- |
@@ -27,7 +27,7 @@ wrapper. Entry point: **`ovos-native-toolcall-loop`** (group `opm.agents.chat`).
 
 **Fallback:** if the configured brain does not advertise `supports_tools`,
 `continue_chat` transparently delegates to the inherited ReAct text loop
-(`super().continue_chat(...)`). So this engine works with **any** brain — it just
+(`super().continue_chat(...)`). So this engine works with **any** brain. It just
 uses the better path when the brain supports it.
 
 ## The loop
@@ -35,8 +35,8 @@ uses the better path when the brain supports it.
 1. **No brain** → return an error `AgentMessage`.
 2. **Brain lacks `supports_tools`** → `return super().continue_chat(...)` (ReAct).
 3. Otherwise iterate up to `max_iterations`:
-   - `resp = brain.continue_chat(loop_messages, tools=self.toolboxes)` — the
-     `ToolBox` objects are passed straight through; the brain normalizes them with
+   - `resp = brain.continue_chat(loop_messages, tools=self.toolboxes)`. The
+     `ToolBox` objects are passed straight through. The brain normalizes them with
      `ToolBox.normalize_tools` to its provider's tool format.
    - If `resp.tool_calls` is empty → return `AgentMessage(ASSISTANT, resp.content)`.
    - Else append the assistant turn (carrying `tool_calls`) **first**, then one
@@ -50,8 +50,8 @@ uses the better path when the brain supports it.
 
 | Key | Meaning | Default |
 | --- | --- | --- |
-| `brain` | ChatEngine plugin id used as the inner LLM (must set `supports_tools` to use native calls) | — |
-| `toolboxes` | ToolBox plugin ids to load | — |
+| `brain` | ChatEngine plugin id used as the inner LLM (must set `supports_tools` to use native calls) | n/a |
+| `toolboxes` | ToolBox plugin ids to load | n/a |
 | `max_iterations` | Max tool-call cycles before forcing an answer | 10 |
 
 ## Streaming
@@ -64,3 +64,6 @@ streamed.
 
 See [`examples/native_toolcall_persona.json`](../examples/native_toolcall_persona.json)
 and [`examples/native_toolcall_persona.py`](../examples/native_toolcall_persona.py).
+
+---
+[← Loop Architectures](loop-architectures.md) · [Home](../README.md) · [ReAct Loop →](react-loop.md)
