@@ -23,6 +23,8 @@ All components integrate with `ovos-plugin-manager` (OPM) via entry points and a
 | `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | — (abstract base) | — |
 | `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete) | — |
 | `ReActLoopEnginePlugin` | `ovos_agentic_loop/factory.py:8` | `opm.agents.chat` | `ovos-react-loop` |
+| `NativeToolCallEngine` | `ovos_agentic_loop/native_toolcall.py` | — (concrete) | — |
+| `NativeToolCallEnginePlugin` | `ovos_agentic_loop/factory.py` | `opm.agents.chat` | `ovos-native-toolcall-loop` |
 | `PlanAndExecuteEngine` | `ovos_agentic_loop/plan_execute.py:108` | — (concrete) | — |
 | `PlanAndExecuteEnginePlugin` | `ovos_agentic_loop/factory.py:27` | `opm.agents.chat` | `ovos-plan-execute-loop` |
 | `ReflexionEngine` | `ovos_agentic_loop/reflexion.py:82` | — (concrete) | — |
@@ -64,7 +66,7 @@ ovos-clock-tools        = "ovos_agentic_loop.tools.clock:ClockToolBox"
 ovos-agents-md-context-plugin = "ovos_agentic_loop.context.agents_md:AgentsMDContextManager"
 ```
 
-OPM uses `importlib.metadata.entry_points()` to discover classes at runtime. `opm.agents.chat` maps to `find_chat_plugins()` / `load_chat_plugin()`. `opm.agents.toolbox` maps to `find_toolbox_plugin()` / `load_toolbox_plugin()`.
+OPM uses `importlib.metadata.entry_points()` to discover classes at runtime. `opm.agents.chat` maps to `find_chat_plugins()` / `load_chat_plugin()`. `opm.agents.toolbox` maps to `find_toolbox_plugins()`.
 
 ---
 
@@ -74,7 +76,7 @@ OPM uses `importlib.metadata.entry_points()` to discover classes at runtime. `op
 
 All loop mechanics are **opaque to the caller**: tool selection, execution, observation injection, and iteration happen inside `ReActLoopEngine.continue_chat` — `ovos_agentic_loop/react.py:198`.
 
-`ToolBox` plugins are loaded by `ReActLoopEngine._load_toolboxes_from_config` — `ovos_agentic_loop/base.py:50` — using `load_toolbox_plugin()` from OPM. They can also be injected directly via `AgenticLoopEngine.load_toolboxes()` — `ovos_agentic_loop/base.py:38`.
+`ToolBox` plugins are loaded by `ReActLoopEngine._load_toolboxes_from_config` — `ovos_agentic_loop/base.py:50` — using `find_toolbox_plugins()` from OPM. They can also be injected directly via `AgenticLoopEngine.load_toolboxes()` — `ovos_agentic_loop/base.py:38`.
 
 `AgentsMDContextManager` is an `AgentContextManager` subclass. It can be loaded by any persona service that supports the `opm.agents.memory` group and calls `build_conversation_context(utterance, lang)`.
 
