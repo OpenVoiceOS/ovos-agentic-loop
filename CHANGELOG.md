@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a1) (2026-08-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.2a1...0.2.3a1)
+
+**Merged pull requests:**
+
+- fix: accept tools kwarg in non-tool-capable ChatEngine overrides [\#15](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.2a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.2a1) (2026-07-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a3...0.2.2a1)
