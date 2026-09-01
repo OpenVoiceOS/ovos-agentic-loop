@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a2) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a1...0.2.3a2)
+
+**Merged pull requests:**
+
+- docs: rewrite README in Simplified Technical English [\#14](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/14) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.2.3a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a1) (2026-08-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.2a1...0.2.3a1)
