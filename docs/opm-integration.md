@@ -15,31 +15,31 @@ This package uses three OPM entry-point groups:
 
 ## How ovos-persona Loads These Plugins
 
-`ovos-persona` (`ovos_persona/solvers.py`) calls `get_utterance_handler_plugins()` — `solvers.py:22` — which aggregates results from multiple OPM `find_*` functions. `find_chat_plugins()` is included, which returns all `opm.agents.chat` entry points. `ReActLoopEnginePlugin` appears in this map when installed.
+`ovos-persona` (`ovos_persona/solvers.py`) calls `get_utterance_handler_plugins()` (`solvers.py:22`), which aggregates results from multiple OPM `find_*` functions. `find_chat_plugins()` is included, which returns all `opm.agents.chat` entry points. `ReActLoopEnginePlugin` appears in this map when installed.
 
-`QuestionSolversService.load_plugins()` — `solvers.py:43` — instantiates each plugin with `plug_class(config=config)`. The config is looked up by plugin ID from the persona config dict.
+`QuestionSolversService.load_plugins()` (`solvers.py:43`) instantiates each plugin with `plug_class(config=config)`. The config is looked up by plugin ID from the persona config dict.
 
-At chat time, `QuestionSolversService.chat_completion()` — `solvers.py:71` — calls `module.continue_chat(messages, session_id=..., lang=..., units=...)` for any `ChatEngine` instance. `ReActLoopEnginePlugin` is a `ChatEngine` subclass, so this dispatch path is used directly. The persona does not know or care that the engine runs an internal loop.
+At chat time, `QuestionSolversService.chat_completion()` (`solvers.py:71`) calls `module.continue_chat(messages, session_id=..., lang=..., units=...)` for any `ChatEngine` instance. `ReActLoopEnginePlugin` is a `ChatEngine` subclass, so this dispatch path is used directly. The persona does not know or care that the engine runs an internal loop.
 
 ---
 
 ## ToolBox → Persona Message Bus Protocol
 
-`ToolBox.bind(bus)` — OPM `agent_tools.py:89` — registers two handlers:
+`ToolBox.bind(bus)` (OPM `agent_tools.py:89`) registers two handlers:
 
 ### Discovery
 
 - **Trigger**: `ovos.persona.tools.discover`
-- **Handler**: `ToolBox.handle_discover()` — `agent_tools.py:112`
+- **Handler**: `ToolBox.handle_discover()` (`agent_tools.py:112`)
 - **Response**: `message.response({"tools": self.tool_json_list, "toolbox_id": self.toolbox_id})`
 
-`tool_json_list` is a list of dicts with JSON Schema for each tool's arguments and outputs — `agent_tools.py:290`. A persona service can broadcast `ovos.persona.tools.discover` and collect schemas from all bound toolboxes.
+`tool_json_list` is a list of dicts with JSON Schema for each tool's arguments and outputs (`agent_tools.py:290`). A persona service can broadcast `ovos.persona.tools.discover` and collect schemas from all bound toolboxes.
 
 ### Tool Call
 
 - **Trigger**: `ovos.persona.tools.<toolbox_id>.call`
 - **Message data**: `{"name": "tool_name", "kwargs": {...}}`
-- **Handler**: `ToolBox.handle_call()` — `agent_tools.py:128`
+- **Handler**: `ToolBox.handle_call()` (`agent_tools.py:128`)
 - **Response (success)**: `{"result": result.model_dump(), "toolbox_id": "..."}`
 - **Response (error)**: `{"error": "ExceptionType: message", "toolbox_id": "..."}`
 
@@ -70,7 +70,7 @@ my-custom-tools = "my_package.toolboxes:MyToolBox"
 }
 ```
 
-`AgenticLoopEngine._load_toolboxes_from_config()` — `base.py:50` — calls `find_toolbox_plugins()` and instantiates the matching class as `cls(config=self.config.get(tid, {}), bus=bus)` for each entry in `config["toolboxes"]`.
+`AgenticLoopEngine._load_toolboxes_from_config()` (`base.py:50`) calls `find_toolbox_plugins()` and instantiates the matching class as `cls(config=self.config.get(tid, {}), bus=bus)` for each entry in `config["toolboxes"]`.
 
 ---
 
@@ -90,20 +90,23 @@ import os
 SKILL_MD_PATH: str = os.path.join(os.path.dirname(__file__), "SKILL.md")
 ```
 
-After install, `SkillMDLoader._discover_via_entry_points()` — `loader.py:79` — will find and parse the file. No further configuration is needed.
+After install, `SkillMDLoader._discover_via_entry_points()` (`loader.py:79`) will find and parse the file. No further configuration is needed.
 
-Alternatively, include the file in the package data so it is listed in the distribution RECORD — `_discover_via_package_data()` — `loader.py:114` — will find it automatically without an entry point.
+Alternatively, include the file in the package data so it is listed in the distribution RECORD. `_discover_via_package_data()` (`loader.py:114`) will find it automatically without an entry point.
 
 ---
 
-## ReActLoopEnginePlugin — OPM Factory Pattern
+## ReActLoopEnginePlugin: OPM Factory Pattern
 
 `ReActLoopEnginePlugin` (`factory.py:8`) is a zero-body subclass of `ReActLoopEngine`. This pattern is used throughout OVOS: the entry point target must be a stable class reference in a dedicated factory module. The actual implementation lives in `react.py`. If the implementation class name changes, only `factory.py` needs updating; `pyproject.toml` is unaffected.
 
 ---
 
-## AgentsMDContextManager — Memory Plugin
+## AgentsMDContextManager: Memory Plugin
 
 `AgentsMDContextManager` is registered under `opm.agents.memory`. The OPM group name mirrors the `AgentContextManager` base class. Persona services that support this group can load context managers by plugin ID and call `build_conversation_context(utterance, lang)` to receive the assembled message list.
 
 Cross-reference: `ovos-persona` uses `BasicShortTermMemory` (`ovos_persona/memory.py:6`) as its default context manager. `AgentsMDContextManager` can replace or supplement this for agents that need AGENTS.md-driven context.
+
+---
+[← AGENTS.md](agents-md.md) · [Home](../README.md)

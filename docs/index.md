@@ -1,4 +1,4 @@
-# ovos-agentic-loop — Architecture Overview
+# ovos-agentic-loop: Architecture Overview
 
 ## What this package does
 
@@ -12,7 +12,7 @@
 
 All components integrate with `ovos-plugin-manager` (OPM) via entry points and are discovered at runtime by `ovos-persona` or any OPM consumer.
 
-**Key architectural insight**: SKILL.md and AGENTS.md are dual-purpose documents — they govern Claude Code at dev-time and serve as tool descriptors / behavioural constraints for runtime LLM agents.
+**Key architectural insight**: SKILL.md and AGENTS.md are dual-purpose documents. They govern Claude Code at dev-time and serve as tool descriptors and behavioral constraints for runtime LLM agents.
 
 ---
 
@@ -20,24 +20,24 @@ All components integrate with `ovos-plugin-manager` (OPM) via entry points and a
 
 | Class | File | Entry Point Group | Entry Point ID |
 | :--- | :--- | :--- | :--- |
-| `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | — (abstract base) | — |
-| `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | — (concrete) | — |
+| `AgenticLoopEngine` | `ovos_agentic_loop/base.py:8` | (abstract base) | n/a |
+| `ReActLoopEngine` | `ovos_agentic_loop/react.py:92` | (concrete) | n/a |
 | `ReActLoopEnginePlugin` | `ovos_agentic_loop/factory.py:8` | `opm.agents.chat` | `ovos-react-loop` |
-| `NativeToolCallEngine` | `ovos_agentic_loop/native_toolcall.py` | — (concrete) | — |
+| `NativeToolCallEngine` | `ovos_agentic_loop/native_toolcall.py` | (concrete) | n/a |
 | `NativeToolCallEnginePlugin` | `ovos_agentic_loop/factory.py` | `opm.agents.chat` | `ovos-native-toolcall-loop` |
-| `PlanAndExecuteEngine` | `ovos_agentic_loop/plan_execute.py:108` | — (concrete) | — |
+| `PlanAndExecuteEngine` | `ovos_agentic_loop/plan_execute.py:108` | (concrete) | n/a |
 | `PlanAndExecuteEnginePlugin` | `ovos_agentic_loop/factory.py:27` | `opm.agents.chat` | `ovos-plan-execute-loop` |
-| `ReflexionEngine` | `ovos_agentic_loop/reflexion.py:82` | — (concrete) | — |
+| `ReflexionEngine` | `ovos_agentic_loop/reflexion.py:82` | (concrete) | n/a |
 | `ReflexionEnginePlugin` | `ovos_agentic_loop/factory.py:36` | `opm.agents.chat` | `ovos-reflexion-loop` |
-| `SelfAskEngine` | `ovos_agentic_loop/self_ask.py:112` | — (concrete) | — |
+| `SelfAskEngine` | `ovos_agentic_loop/self_ask.py:112` | (concrete) | n/a |
 | `SelfAskEnginePlugin` | `ovos_agentic_loop/factory.py:45` | `opm.agents.chat` | `ovos-self-ask-loop` |
-| `ChainOfThoughtEngine` | `ovos_agentic_loop/chain_of_thought.py:68` | — (concrete) | — |
+| `ChainOfThoughtEngine` | `ovos_agentic_loop/chain_of_thought.py:68` | (concrete) | n/a |
 | `ChainOfThoughtEnginePlugin` | `ovos_agentic_loop/factory.py:54` | `opm.agents.chat` | `ovos-chain-of-thought-loop` |
-| `CRITICEngine` | `ovos_agentic_loop/critic.py:92` | — (concrete) | — |
+| `CRITICEngine` | `ovos_agentic_loop/critic.py:92` | (concrete) | n/a |
 | `CRITICEnginePlugin` | `ovos_agentic_loop/factory.py:63` | `opm.agents.chat` | `ovos-critic-loop` |
-| `TreeOfThoughtsEngine` | `ovos_agentic_loop/tree_of_thoughts.py:108` | — (concrete) | — |
+| `TreeOfThoughtsEngine` | `ovos_agentic_loop/tree_of_thoughts.py:108` | (concrete) | n/a |
 | `TreeOfThoughtsEnginePlugin` | `ovos_agentic_loop/factory.py:72` | `opm.agents.chat` | `ovos-tree-of-thoughts-loop` |
-| `SkillMDLoader` | `ovos_agentic_loop/skills/loader.py:143` | — | — |
+| `SkillMDLoader` | `ovos_agentic_loop/skills/loader.py:143` | n/a | n/a |
 | `SkillMDToolBox` | `ovos_agentic_loop/skills/toolbox.py:48` | `opm.agents.toolbox` | `ovos-skill-md-toolbox` |
 | `FileSystemToolBox` | `ovos_agentic_loop/tools/filesystem.py:85` | `opm.agents.toolbox` | `ovos-filesystem-tools` |
 | `ShellToolBox` | `ovos_agentic_loop/tools/shell.py:26` | `opm.agents.toolbox` | `ovos-shell-tools` |
@@ -72,11 +72,11 @@ OPM uses `importlib.metadata.entry_points()` to discover classes at runtime. `op
 
 ## Integration with ovos-persona
 
-`ovos-persona` (`ovos_persona/solvers.py:22`) loads all `ChatEngine` plugins via `find_chat_plugins()`. `ReActLoopEnginePlugin` is a `ChatEngine` subclass (via `AgenticLoopEngine → ChatEngine`), so `ovos-persona` treats it identically to any LLM plugin — it calls `continue_chat(messages, session_id, lang, units)` and receives one `AgentMessage` back.
+`ovos-persona` (`ovos_persona/solvers.py:22`) loads all `ChatEngine` plugins via `find_chat_plugins()`. `ReActLoopEnginePlugin` is a `ChatEngine` subclass (via `AgenticLoopEngine → ChatEngine`), so `ovos-persona` treats it identically to any LLM plugin. It calls `continue_chat(messages, session_id, lang, units)` and receives one `AgentMessage` back.
 
-All loop mechanics are **opaque to the caller**: tool selection, execution, observation injection, and iteration happen inside `ReActLoopEngine.continue_chat` — `ovos_agentic_loop/react.py:198`.
+All loop mechanics are **opaque to the caller**: tool selection, execution, observation injection, and iteration happen inside `ReActLoopEngine.continue_chat` (`ovos_agentic_loop/react.py:198`).
 
-`ToolBox` plugins are loaded by `ReActLoopEngine._load_toolboxes_from_config` — `ovos_agentic_loop/base.py:50` — using `find_toolbox_plugins()` from OPM. They can also be injected directly via `AgenticLoopEngine.load_toolboxes()` — `ovos_agentic_loop/base.py:38`.
+`ToolBox` plugins are loaded by `ReActLoopEngine._load_toolboxes_from_config` (`ovos_agentic_loop/base.py:50`). It uses `find_toolbox_plugins()` from OPM. They can also be injected directly via `AgenticLoopEngine.load_toolboxes()` (`ovos_agentic_loop/base.py:38`).
 
 `AgentsMDContextManager` is an `AgentContextManager` subclass. It can be loaded by any persona service that supports the `opm.agents.memory` group and calls `build_conversation_context(utterance, lang)`.
 
@@ -93,7 +93,7 @@ All loop mechanics are **opaque to the caller**: tool selection, execution, obse
 | `ovos.persona.tools.<toolbox_id>.call` | → ToolBox | `{name: "tool_name", kwargs: {...}}` |
 | `ovos.persona.tools.<toolbox_id>.call` (response) | ToolBox → | `{result: {...model_dump...}, toolbox_id}` or `{error: "..."}` |
 
-`ReActLoopEngine` calls tools **directly** (not over the bus) via `tb.call_tool(name, args)` — `ovos_agentic_loop/react.py:175`. Bus dispatch is a capability of the OPM `ToolBox` base class available to other consumers.
+`ReActLoopEngine` calls tools **directly** (not over the bus) via `tb.call_tool(name, args)` (`ovos_agentic_loop/react.py:175`). Bus dispatch is a capability of the OPM `ToolBox` base class available to other consumers.
 
 ---
 
@@ -175,9 +175,9 @@ Persona config snippet (OVOS JSON config):
 
 ## See Also
 
-- `docs/loop-architectures.md` — All four loop engines: rationale, algorithm, when to use, comparison table
-- `docs/react-loop.md` — ReAct algorithm deep dive with all source citations
-- `docs/toolboxes.md` — Per-toolbox reference (args, outputs, config)
-- `docs/skill-md.md` — SKILL.md format spec, discovery, and authoring guide
-- `docs/agents-md.md` — AGENTS.md context manager internals
-- `docs/opm-integration.md` — OPM entry point integration and plugin registration guide
+- `docs/loop-architectures.md`: All four loop engines: rationale, algorithm, when to use, comparison table
+- `docs/react-loop.md`: ReAct algorithm deep dive with all source citations
+- `docs/toolboxes.md`: Per-toolbox reference (args, outputs, config)
+- `docs/skill-md.md`: SKILL.md format spec, discovery, and authoring guide
+- `docs/agents-md.md`: AGENTS.md context manager internals
+- `docs/opm-integration.md`: OPM entry point integration and plugin registration guide

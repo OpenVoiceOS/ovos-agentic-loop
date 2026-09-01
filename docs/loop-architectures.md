@@ -14,10 +14,10 @@
 | Tool use with a brain that has native function-calling | **Native Tool-Call** |
 | Single-turn tool use, any text brain (no native tools) | **ReAct** |
 | Multi-step task with distinct, sequenced sub-goals | **Plan-and-Execute** |
-| Correctness matters; agent may fail on first attempt | **Reflexion** |
+| Correctness matters, agent may fail on first attempt | **Reflexion** |
 | Multi-hop knowledge question (chain of facts) | **Self-Ask** |
 | Answer contains verifiable factual claims | **CRITIC** |
-| Multiple solution strategies exist; want best one | **Tree-of-Thoughts** |
+| Multiple solution strategies exist, want the best one | **Tree-of-Thoughts** |
 
 The loops are not mutually exclusive.  Reflexion *wraps* ReAct internally, so
 it inherits every ReAct capability while adding the self-correction outer loop.
@@ -26,26 +26,26 @@ subclasses ReAct and falls back to it when the brain has no native function-call
 
 ---
 
-## Native Tool-Call — provider-native function calling
+## Native Tool-Call: provider-native function calling
 
 **Entry point:** `ovos-native-toolcall-loop`
-**Class:** `NativeToolCallEngine` — `ovos_agentic_loop/native_toolcall.py`
+**Class:** `NativeToolCallEngine` (`ovos_agentic_loop/native_toolcall.py`)
 **Deep dive:** [native-toolcall-loop.md](native-toolcall-loop.md)
 
 Hands the toolboxes to the brain via `continue_chat(tools=...)` and reads structured
 `AgentMessage.tool_calls` back, executing each and feeding results as
 `MessageRole.TOOL` messages. Requires a brain with `supports_tools = True` (e.g.
 `ovos-openai-plugin`); otherwise it transparently falls back to the ReAct text loop.
-Prefer this over ReAct whenever the brain supports native tool-calling — it is more
+Prefer this over ReAct whenever the brain supports native tool-calling, it is more
 reliable and cheaper (the provider parses the calls, not a regex).
 
 ---
 
-## ReAct — Reason + Act
+## ReAct: Reason + Act
 
 **Entry point:** `ovos-react-loop`
-**Class:** `ReActLoopEngine` — `ovos_agentic_loop/react.py:92`
-**Paper:** Yao et al., 2022 — *ReAct: Synergizing Reasoning and Acting in Language Models*
+**Class:** `ReActLoopEngine` (`ovos_agentic_loop/react.py:92`)
+**Paper:** Yao et al., 2022. *ReAct: Synergizing Reasoning and Acting in Language Models*
 
 ### How it works
 
@@ -64,7 +64,7 @@ FINAL_ANSWER: It is currently 18 °C and partly cloudy in Paris.
 The loop exits on `FINAL_ANSWER:` or when `max_iterations` is exhausted
 (at which point the LLM is asked for its best answer).
 
-### Loop logic (`react.py:204–250`)
+### Loop logic (`react.py:204-250`)
 
 ```
 loop_messages = [react_system_prompt] + conversation_history
@@ -84,8 +84,8 @@ for _ in range(max_iterations):
 ### Strengths and limits
 
 **Strengths:** Simple, predictable, single-LLM-call per iteration.
-**Limits:** The LLM must commit to a complete plan on each turn; it cannot
-backtrack if an early tool call was wrong.  Repeated tool-call failures
+**Limits:** The LLM must commit to a complete plan on each turn. It cannot
+backtrack if an early tool call was wrong. Repeated tool-call failures
 consume iterations without recovery.
 
 ---
@@ -93,16 +93,16 @@ consume iterations without recovery.
 ## Plan-and-Execute
 
 **Entry point:** `ovos-plan-execute-loop`
-**Class:** `PlanAndExecuteEngine` — `ovos_agentic_loop/plan_execute.py:108`
-**Reference:** Wang et al., 2023 — *Plan-and-Solve Prompting*; also the
+**Class:** `PlanAndExecuteEngine` (`ovos_agentic_loop/plan_execute.py:108`)
+**Reference:** Wang et al., 2023. *Plan-and-Solve Prompting*. Also see the
 LangChain Plan-and-Execute agent pattern.
 
 ### How it works
 
 Planning and execution are **two separate LLM calls** per run.
 
-**Phase 1 — Plan:** the planner LLM receives the user's request and the full
-tool list, then outputs a numbered list of 3–7 sub-tasks.
+**Phase 1: Plan.** The planner LLM receives the user's request and the full
+tool list, then outputs a numbered list of 3-7 sub-tasks.
 
 ```
 1. Get current weather in Paris
@@ -110,14 +110,14 @@ tool list, then outputs a numbered list of 3–7 sub-tasks.
 3. Compare and answer which is warmer
 ```
 
-**Phase 2 — Execute:** each step runs through a mini-ReAct sub-loop
+**Phase 2: Execute.** Each step runs through a mini-ReAct sub-loop
 (`max_step_iterations`, default 5).  The output of every completed step is
 appended as context before the next step starts.
 
-**Phase 3 — Synthesize:** a single "summarise all step results" LLM call
+**Phase 3: Synthesize.** A single "summarise all step results" LLM call
 produces the natural-language final answer.
 
-### Loop logic (`plan_execute.py:246–298`)
+### Loop logic (`plan_execute.py:246-298`)
 
 ```
 plan = planner_llm(messages + tool_schemas)
@@ -137,24 +137,24 @@ answer = synthesizer_llm(original_request, step_results)
   "get weather in Paris and London, then compare").
 - Workflows where the full plan must be visible before execution starts
   (e.g. for logging or human review).
-- Tasks with **more than ~3 tool calls** — ReAct tends to lose track of
-  earlier observations; Plan-and-Execute keeps step outputs explicit.
+- Tasks with **more than ~3 tool calls**. ReAct tends to lose track of
+  earlier observations. Plan-and-Execute keeps step outputs explicit.
 
 ### Strengths and limits
 
 **Strengths:** The planner phase produces an auditable, inspectable plan.
 Step outputs are explicit and reusable.
 **Limits:** Costs more LLM calls (1 planner + N executors + 1 synthesizer).
-The plan is fixed after phase 1; if step 2 reveals the plan was wrong, the
+The plan is fixed after phase 1. If step 2 reveals the plan was wrong, the
 engine cannot replan mid-execution.
 
 ---
 
-## Reflexion — Self-Reflective Episodic Loop
+## Reflexion: Self-Reflective Episodic Loop
 
 **Entry point:** `ovos-reflexion-loop`
-**Class:** `ReflexionEngine` — `ovos_agentic_loop/reflexion.py:82`
-**Paper:** Shinn et al., 2023 — *Reflexion: Language Agents with Verbal
+**Class:** `ReflexionEngine` (`ovos_agentic_loop/reflexion.py:82`)
+**Paper:** Shinn et al., 2023. *Reflexion: Language Agents with Verbal
 Reinforcement Learning*
 
 ### How it works
@@ -167,19 +167,19 @@ episode's system prompt.
 ```
 Episode 1:
   inner ReAct → answer A
-  Evaluator: UNSATISFACTORY — did not use the weather tool.
+  Evaluator: UNSATISFACTORY, did not use the weather tool.
   Reflector: "Reflection: I answered from memory instead of calling
               get_current_weather. Next time I must use the tool."
 
 Episode 2 (with reflection in context):
   inner ReAct → answer B
-  Evaluator: SATISFACTORY — answer is complete.
+  Evaluator: SATISFACTORY, answer is complete.
   → return B
 ```
 
 Iteration stops at `SATISFACTORY` or `max_reflections` (default 3).
 
-### Loop logic (`reflexion.py:187–237`)
+### Loop logic (`reflexion.py:187-237`)
 
 ```
 reflections = []
@@ -202,7 +202,7 @@ outer `ReflexionEngine`.  `set_brain()` propagates to both.
 
 - Tasks where a **wrong first attempt is likely** and recovery is cheap
   (e.g. coding, arithmetic, constrained-slot filling).
-- Situations where the agent has several plausible approaches — reflections
+- Situations where the agent has several plausible approaches, reflections
   steer it away from already-failed strategies.
 - When you want **automatic retry with diagnosis** without building explicit
   retry logic in the caller.
@@ -210,20 +210,20 @@ outer `ReflexionEngine`.  `set_brain()` propagates to both.
 ### Strengths and limits
 
 **Strengths:** Often reaches a correct answer in 2 episodes that ReAct
-would never recover from in one.  No external memory store — reflections
+would never recover from in one.  No external memory store, reflections
 live in the prompt context.
-**Limits:** Each episode is a full ReAct run; total LLM calls = episodes ×
-ReAct iterations + evaluations + reflections.  The evaluator can be wrong
-(false UNSATISFACTORY → unnecessary retries; false SATISFACTORY → early
-exit with wrong answer).
+**Limits:** Each episode is a full ReAct run. Total LLM calls equal episodes ×
+ReAct iterations + evaluations + reflections. The evaluator can be wrong.
+A false UNSATISFACTORY causes unnecessary retries. A false SATISFACTORY
+causes an early exit with the wrong answer.
 
 ---
 
-## Self-Ask — Compositional Question Decomposition
+## Self-Ask: Compositional Question Decomposition
 
 **Entry point:** `ovos-self-ask-loop`
-**Class:** `SelfAskEngine` — `ovos_agentic_loop/self_ask.py:112`
-**Paper:** Press et al., 2022 — *Measuring and Narrowing the Compositionality
+**Class:** `SelfAskEngine` (`ovos_agentic_loop/self_ask.py:112`)
+**Paper:** Press et al., 2022. *Measuring and Narrowing the Compositionality
 Gap in Language Models*
 
 ### How it works
@@ -241,10 +241,10 @@ Intermediate answer: Javier Milei.
 So the final answer is: Javier Milei.
 ```
 
-The grammar is intentionally simpler than ReAct — no `Action Input` JSON,
+The grammar is intentionally simpler than ReAct, no `Action Input` JSON,
 just a plain text query forwarded to the first available tool.
 
-### Loop logic (`self_ask.py:255–328`)
+### Loop logic (`self_ask.py:255-328`)
 
 ```
 for _ in range(max_follow_ups):
@@ -266,7 +266,7 @@ decomposer: the LLM answers each follow-up from its own knowledge.
 - **Multi-hop knowledge questions** where each intermediate fact is
   independently look-up-able (e.g. "What language is spoken in the capital
   of the country that borders X?").
-- Pipelines with a **single search/lookup tool** — the Self-Ask grammar is
+- Pipelines with a **single search/lookup tool**, the Self-Ask grammar is
   optimised for a simple `query → result` tool interface rather than
   multi-argument JSON tools.
 - Situations where you want **explicit intermediate reasoning** visible in
@@ -279,18 +279,18 @@ reasoning) or one search tool.  Simple grammar means small/weaker LLMs
 follow the format more reliably than ReAct's JSON Action Input.
 **Limits:** Poor fit for tasks requiring multi-argument tools or side
 effects (write file, run command).  All sub-questions are answered
-sequentially — no parallelism.  Cannot reuse an intermediate answer for
+sequentially, no parallelism.  Cannot reuse an intermediate answer for
 multiple downstream questions without the LLM re-asking.
 
 ---
 
-## Chain-of-Thought — Structured Step-by-Step Reasoning
+## Chain-of-Thought: Structured Step-by-Step Reasoning
 
 **Entry point:** `ovos-chain-of-thought-loop`
-**Class:** `ChainOfThoughtEngine` — `ovos_agentic_loop/chain_of_thought.py:68`
-**Papers:** Wei et al., 2022 — *Chain-of-Thought Prompting Elicits Reasoning in
-Large Language Models*; Kojima et al., 2022 — *Large Language Models are
-Zero-Shot Reasoners* ("Let's think step by step")
+**Class:** `ChainOfThoughtEngine` (`ovos_agentic_loop/chain_of_thought.py:68`)
+**Papers:** Wei et al., 2022. *Chain-of-Thought Prompting Elicits Reasoning in
+Large Language Models*. Kojima et al., 2022. *Large Language Models are
+Zero-Shot Reasoners* ("Let's think step by step").
 
 ### How it works
 
@@ -306,7 +306,7 @@ FINAL ANSWER: 116
 
 No tools, no loop, no iteration.
 
-### Loop logic (`chain_of_thought.py:118–148`)
+### Loop logic (`chain_of_thought.py:118-148`)
 
 ```
 messages = [cot_system_prompt + optional_extra_prompt] + conversation_history
@@ -316,12 +316,12 @@ return extract_after("FINAL ANSWER:", response) or response
 
 ### When to use
 
-- **Arithmetic and algebra** — multi-step calculation where intermediate
+- **Arithmetic and algebra**, multi-step calculation where intermediate
   values matter.
-- **Logic puzzles and constraint solving** — tasks that require eliminating
+- **Logic puzzles and constraint solving**, tasks that require eliminating
   cases.
-- **Multi-step instruction following** — decomposing "how to do X" questions.
-- Any task where **no external information** is needed; adding tools would
+- **Multi-step instruction following**, decomposing "how to do X" questions.
+- Any task where **no external information** is needed. Adding tools would
   add latency with no benefit.
 - As a cheap **first pass** before escalating to a more expensive loop.
 
@@ -330,16 +330,16 @@ return extract_after("FINAL ANSWER:", response) or response
 **Strengths:** Exactly one LLM call, lowest latency and cost of all seven
 loops.  Readable reasoning trace in the response.  Zero dependencies on tools
 or external services.
-**Limits:** Hallucination-prone on factual questions — the model reasons from
+**Limits:** Hallucination-prone on factual questions, the model reasons from
 its training data only.  Does not retry or self-correct.
 
 ---
 
-## CRITIC — Tool-Assisted Self-Verification and Revision
+## CRITIC: Tool-Assisted Self-Verification and Revision
 
 **Entry point:** `ovos-critic-loop`
-**Class:** `CRITICEngine` — `ovos_agentic_loop/critic.py:92`
-**Paper:** Gou et al., 2023 — *CRITIC: Large Language Models Can Self-Correct
+**Class:** `CRITICEngine` (`ovos_agentic_loop/critic.py:92`)
+**Paper:** Gou et al., 2023. *CRITIC: Large Language Models Can Self-Correct
 with Tool-Interactive Critiquing*
 
 ### How it works
@@ -349,22 +349,22 @@ Three phases: **draft → critique → revise**.
 1. **Draft**: the brain generates an initial answer.
 2. **Critique**: a separate LLM call identifies verifiable claims in the draft
    and emits ``CLAIM / TOOL / TOOL INPUT`` blocks for each.
-3. **Verify + Revise**: each claim is checked via a tool call; observations
-   are used to rewrite the answer.  Repeats up to ``max_critique_rounds``.
+3. **Verify + Revise**: each claim is checked via a tool call. Observations
+   are used to rewrite the answer. Repeats up to ``max_critique_rounds``.
 
 ```
 Draft:    "The Eiffel Tower was built in 1887."
 Critique: CLAIM: Built in 1887
           TOOL: web_search
           TOOL INPUT: Eiffel Tower construction year
-Verify:   → "Construction 1887–1889; opened 1889."
+Verify:   → "Construction 1887-1889; opened 1889."
 Revised:  "The Eiffel Tower was built between 1887 and 1889."
 ```
 
 If the brain emits ``VERIFIED: all claims are correct`` the draft is accepted
 without revision.
 
-### Loop logic (`critic.py:198–260`)
+### Loop logic (`critic.py:198-260`)
 
 ```
 draft = brain(messages)
@@ -391,7 +391,7 @@ return draft
 
 ### Strengths and limits
 
-**Strengths:** Targets errors precisely at the claim level — only
+**Strengths:** Targets errors precisely at the claim level, only
 incorrect facts are revised, the rest of the answer is preserved.  More
 efficient than Reflexion for factual corrections (no full re-run).
 **Limits:** Requires a capable LLM to produce well-formed ``CLAIM/TOOL/TOOL
@@ -401,11 +401,11 @@ draft-only (equivalent to a simple brain call).
 
 ---
 
-## Tree-of-Thoughts — Beam Search over Reasoning Paths
+## Tree-of-Thoughts: Beam Search over Reasoning Paths
 
 **Entry point:** `ovos-tree-of-thoughts-loop`
-**Class:** `TreeOfThoughtsEngine` — `ovos_agentic_loop/tree_of_thoughts.py:108`
-**Paper:** Yao et al., 2023 — *Tree of Thoughts: Deliberate Problem Solving
+**Class:** `TreeOfThoughtsEngine` (`ovos_agentic_loop/tree_of_thoughts.py:108`)
+**Paper:** Yao et al., 2023. *Tree of Thoughts: Deliberate Problem Solving
 with Large Language Models*
 
 ### How it works
@@ -430,7 +430,7 @@ Any branch that produces ``ANSWER:`` in a generated thought terminates the
 search immediately.  If ``max_depth`` is reached without a natural answer,
 the highest-scored surviving branch is asked to produce a final answer.
 
-### Loop logic (`tree_of_thoughts.py:211–264`)
+### Loop logic (`tree_of_thoughts.py:211-264`)
 
 ```
 branches = [_Branch()]  # single empty root
@@ -457,7 +457,7 @@ branch per level) + 1 optional force_answer.
 
 - Problems with **multiple competing solution strategies** where it is not
   clear upfront which approach will work (combinatorics, coding, planning).
-- Tasks where **early commitment** (as in ReAct) leads to dead ends — ToT
+- Tasks where **early commitment** (as in ReAct) leads to dead ends, ToT
   can explore and abandon a branch before committing to it.
 - **Creative tasks** (writing, brainstorming) where you want the LLM to
   generate diverse options and keep the best.
@@ -467,10 +467,10 @@ branch per level) + 1 optional force_answer.
 **Strengths:** Can recover from locally-plausible but globally-poor choices
 by keeping competing branches alive.  The evaluator provides an explicit
 quality signal at each step.
-**Limits:** Most expensive of the seven loops — LLM call count grows as
+**Limits:** Most expensive of the seven loops, LLM call count grows as
 ``depth × n_branches × 2``.  The evaluator itself can be biased or wrong.
-Only BFS/beam-search is implemented; DFS with backtracking is not (context
-window cost).
+Only BFS/beam-search is implemented. DFS with backtracking is not, because of
+the context window cost.
 
 ---
 
@@ -478,15 +478,16 @@ window cost).
 
 | Property | CoT | ReAct | Plan+Exec | Reflexion | Self-Ask | CRITIC | ToT |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| LLM calls (min) | 1 | 1–N | 3+N | 2–(3+N)×E | 1–N | 2 | d×b×2 |
-| Supports multi-arg tools | ✗ | ✓ | ✓ | ✓ | partial | partial | ✗ |
-| Can self-correct | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | partial |
-| Produces auditable plan/trace | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
-| Works without tools | ✓ | ✓ | ✓ | ✓ | ✓ | ✓* | ✓ |
+| LLM calls (min) | 1 | 1-N | 3+N | 2-(3+N)×E | 1-N | 2 | d×b×2 |
+| Supports multi-arg tools | No | Yes | Yes | Yes | partial | partial | No |
+| Can self-correct | No | No | No | Yes | No | Yes | partial |
+| Produces auditable plan/trace | Yes | No | Yes | No | Yes | Yes | Yes |
+| Works without tools | Yes | Yes | Yes | Yes | Yes | Yes* | Yes |
 | Best for | reasoning | general | multi-step | correctness | multi-hop QA | factual Q&A | hard problems |
 
 *CRITIC without tools skips critique phases and returns the draft directly.*
-*CoT = Chain-of-Thought; E = episodes; N = tool calls; d = depth; b = n_branches.*
+
+*CoT means Chain-of-Thought. E is episodes. N is tool calls. d is depth. b is n_branches.*
 
 ---
 
@@ -509,5 +510,8 @@ You can nest them or wrap them in any persona config:
 }
 ```
 
-The `ReflexionEngine` will internally build a `ReActLoopEngine` configured
-with the same `brain` and `toolboxes`; no extra wiring is required.
+The `ReflexionEngine` internally builds a `ReActLoopEngine` configured
+with the same `brain` and `toolboxes`. No extra wiring is required.
+
+---
+[Home](../README.md) · [Native Tool-Call →](native-toolcall-loop.md)
