@@ -73,15 +73,15 @@ class TestAgenticLoopEngineBaseCoverage:
     def test_load_toolboxes_from_config_opm_import_error(self) -> None:
         """_load_toolboxes_from_config handles missing OPM gracefully."""
         engine = ChainOfThoughtEngine(config={"toolboxes": ["some-tool"]})
-        with patch.dict("sys.modules", {"ovos_plugin_manager.agent_tools": None}):
+        with patch.dict("sys.modules", {"ovos_plugin_manager.persona": None}):
             engine._load_toolboxes_from_config()  # should not raise
 
     def test_load_toolboxes_from_config_plugin_load_fails(self) -> None:
         """_load_toolboxes_from_config logs warning on per-plugin failure."""
         engine = ChainOfThoughtEngine(config={"toolboxes": ["bad-tool"]})
         mock_opm = MagicMock()
-        mock_opm.load_toolbox_plugin.side_effect = RuntimeError("no such plugin")
-        with patch.dict("sys.modules", {"ovos_plugin_manager.agent_tools": mock_opm}):
+        mock_opm.find_toolbox_plugins.return_value = {}
+        with patch.dict("sys.modules", {"ovos_plugin_manager.persona": mock_opm}):
             engine._load_toolboxes_from_config()  # should not raise
 
     def test_load_toolboxes_with_brain_already_set(self) -> None:

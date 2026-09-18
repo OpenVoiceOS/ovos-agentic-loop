@@ -29,8 +29,10 @@ from ovos_agentic_loop.tools.filesystem import (
     SearchInFilesArgs,
     WriteFileArgs,
 )
+from ovos_agentic_loop.tools.math import MathToolBox
 from ovos_agentic_loop.tools.shell import RunCommandArgs, ShellToolBox
 from ovos_agentic_loop.tools.web import WebSearchArgs, WebSearchToolBox
+from ovos_agentic_loop.skills.toolbox import SkillMDToolBox
 
 
 # ---------------------------------------------------------------------------
@@ -301,3 +303,58 @@ class TestClockToolBox:
         """discover_tools returns exactly one tool."""
         box = ClockToolBox()
         assert len(box.discover_tools()) == 1
+
+
+# ---------------------------------------------------------------------------
+# ToolBox construction contract: toolbox_id supplied by the plugin via
+# super().__init__(), config+bus forwarding
+# ---------------------------------------------------------------------------
+
+class TestToolBoxContract:
+    """All six built-in toolboxes must follow the shared ToolBox contract:
+
+    - ``toolbox_id`` is passed by the plugin's own ``__init__`` to
+      ``super().__init__(toolbox_id=..., config=config, bus=bus)`` and matches
+      the plugin's entry-point name declared in ``pyproject.toml``. It is a
+      constructor parameter, not a class attribute.
+    - ``__init__(self, config=None, bus=None)`` forwards both to
+      ``ToolBox.__init__`` (config is stored, bus triggers ``bind()``).
+    """
+
+    EXPECTED_IDS = {
+        ClockToolBox: "ovos-clock-tools",
+        FileSystemToolBox: "ovos-filesystem-tools",
+        MathToolBox: "ovos-math-tools",
+        ShellToolBox: "ovos-shell-tools",
+        WebSearchToolBox: "ovos-web-search-tools",
+        SkillMDToolBox: "ovos-skill-md-toolbox",
+    }
+
+    @pytest.mark.parametrize("cls,expected_id", list(EXPECTED_IDS.items()))
+    def test_toolbox_id_set_after_construction(self, cls, expected_id) -> None:
+        """toolbox_id is set on the instance after construction and matches the entry-point name."""
+        box = cls()
+        assert box.toolbox_id == expected_id
+
+    @pytest.mark.parametrize("cls", list(EXPECTED_IDS.keys()))
+    def test_construct_with_no_args(self, cls) -> None:
+        """Every toolbox can be constructed with no arguments at all."""
+        box = cls()
+        assert box.config == {}
+        assert box.bus is None
+
+    @pytest.mark.parametrize("cls", list(EXPECTED_IDS.keys()))
+    def test_construct_forwards_config(self, cls) -> None:
+        """The config kwarg is forwarded to the base class and stored."""
+        box = cls(config={"some_key": "some_value"})
+        assert box.config["some_key"] == "some_value"
+
+    @pytest.mark.parametrize("cls", list(EXPECTED_IDS.keys()))
+    def test_construct_forwards_bus(self, cls) -> None:
+        """Passing bus= at construction time binds the toolbox immediately."""
+        bus = MagicMock()
+        box = cls(bus=bus)
+        assert box.bus is bus
+        bus.on.assert_any_call(
+            f"ovos.persona.tools.{box.toolbox_id}.call", box.handle_call
+        )

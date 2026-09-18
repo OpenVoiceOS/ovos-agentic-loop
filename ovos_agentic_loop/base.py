@@ -14,7 +14,7 @@
 import abc
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine
+from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine, ToolsArg
 from ovos_utils.log import LOG
 
 if TYPE_CHECKING:
@@ -105,17 +105,18 @@ class AgenticLoopEngine(ChatEngine):
         if not toolbox_ids:
             return
         try:
-            from ovos_plugin_manager.agent_tools import load_toolbox_plugin
+            from ovos_plugin_manager.persona import find_toolbox_plugins
         except ImportError:
-            LOG.debug("AgenticLoopEngine: ovos_plugin_manager.agent_tools not available; "
+            LOG.debug("AgenticLoopEngine: ovos_plugin_manager.persona not available; "
                       "skipping toolbox auto-load")
             return
 
+        bus = getattr(self, "bus", None)
+        available = find_toolbox_plugins()
         for tid in toolbox_ids:
             try:
-                plugin = load_toolbox_plugin(tid, config=self.config.get(tid, {}))
-                if plugin is not None:
-                    self.toolboxes.append(plugin)
+                cls = available[tid]
+                self.toolboxes.append(cls(config=self.config.get(tid, {}), bus=bus))
             except Exception as exc:  # noqa: BLE001
                 LOG.warning(f"AgenticLoopEngine: failed to load toolbox '{tid}': {exc}")
 
@@ -123,7 +124,8 @@ class AgenticLoopEngine(ChatEngine):
     def continue_chat(self, messages: List[AgentMessage],
                       session_id: str = "default",
                       lang: Optional[str] = None,
-                      units: Optional[str] = None) -> AgentMessage:
+                      units: Optional[str] = None,
+                      tools: "ToolsArg" = None) -> AgentMessage:
         """
         Run the agent loop and return the final response.
 
@@ -140,4 +142,12 @@ class AgenticLoopEngine(ChatEngine):
         Returns:
             The assistant's final response after the loop has completed.
         """
+        # `tools` is accepted (and ignored) purely for contract conformance with
+        # ovos_plugin_manager.templates.agents.ChatEngine.continue_chat, whose
+        # signature declares it unconditionally. This engine is not tool-capable
+        # (supports_tools stays False). Accepting the kwarg matters because the
+        # agentic-loop ReAct fallback (see native_toolcall.py) calls
+        # `self.brain.continue_chat(..., tools=...)` on whatever brain engine is
+        # configured, even non-tool-capable ones — omitting `tools` here would
+        # raise TypeError on that call path.
         raise NotImplementedError()

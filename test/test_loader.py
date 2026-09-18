@@ -122,22 +122,28 @@ class TestSkillMDLoader:
         p = tmp_path / "SKILL.md"
         p.write_text(VALID_SKILL_MD, encoding="utf-8")
         loader = SkillMDLoader(extra_paths=[str(p)])
-        first = loader.load()
-        # Touch the file to update mtime.
-        time.sleep(0.01)
-        p.write_text(VALID_SKILL_MD.replace("web-search", "updated-search"), encoding="utf-8")
-        second = loader.load()
-        assert second[0].name == "updated-search"
-        assert first[0].name != second[0].name
+        # Suppress auto-discovery so only the extra_path entry is loaded.
+        with patch("ovos_agentic_loop.skills.loader._discover_via_entry_points", return_value=[]), \
+             patch("ovos_agentic_loop.skills.loader._discover_via_package_data", return_value=[]):
+            first = loader.load()
+            # Touch the file to update mtime.
+            time.sleep(0.01)
+            p.write_text(VALID_SKILL_MD.replace("web-search", "updated-search"), encoding="utf-8")
+            second = loader.load()
+        assert any(e.name == "updated-search" for e in second)
+        assert not any(e.name == "updated-search" for e in first)
 
     def test_invalidate_cache_forces_reparse(self, tmp_path: "Path") -> None:
         p = tmp_path / "SKILL.md"
         p.write_text(VALID_SKILL_MD, encoding="utf-8")
         loader = SkillMDLoader(extra_paths=[str(p)])
-        loader.load()
-        loader.invalidate_cache()
-        assert loader._cache is None
-        entries = loader.load()
+        # Suppress auto-discovery so the result count is deterministic.
+        with patch("ovos_agentic_loop.skills.loader._discover_via_entry_points", return_value=[]), \
+             patch("ovos_agentic_loop.skills.loader._discover_via_package_data", return_value=[]):
+            loader.load()
+            loader.invalidate_cache()
+            assert loader._cache is None
+            entries = loader.load()
         assert len(entries) == 1
 
 

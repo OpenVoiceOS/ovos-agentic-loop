@@ -1,0 +1,21 @@
+{
+  "_comment": "Native tool-calling persona for ovos-persona. See native_toolcall_persona.py for the full example.",
+  "name": "Calculator",
+  "solvers": [
+    "ovos-native-toolcall-loop"
+  ],
+  "ovos-native-toolcall-loop": {
+    "brain": "ovos-chat-openai-plugin",
+    "max_iterations": 5,
+    "system_prompt": "You are a precise assistant. Use the math tools to compute answers instead of guessing.",
+    "toolboxes": [
+      "ovos-math-tools"
+    ],
+    "ovos-chat-openai-plugin": {
+      "_comment": "Needs a brain whose ChatEngine sets supports_tools=True (native function-calling). Point api_url at any OpenAI-compatible server with a tool-capable model.",
+      "model": "qwen2.5",
+      "api_url": "http://localhost:11434/v1/chat/completions",
+      "api_key": "not-needed-for-local"
+    }
+  }
+}
