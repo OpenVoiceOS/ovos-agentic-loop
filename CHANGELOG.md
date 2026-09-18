@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a3) (2026-09-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a2...0.2.3a3)
+
+**Merged pull requests:**
+
+- chore: Configure Renovate [\#1](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/1) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.2.3a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a2) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a1...0.2.3a2)
