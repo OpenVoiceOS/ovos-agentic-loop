@@ -21,7 +21,7 @@ Repository = "https://github.com/TigreGotico/ovos-agentic-loop"
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0.0,<9",
+    "pytest>=9.1.1,<10",
     "pytest-cov",
     "pytest-timeout>=2.0.0",
     "ovoscope>=0.13.1",
