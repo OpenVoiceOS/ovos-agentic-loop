@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.4a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a1) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a3...0.2.4a1)
+
+**Merged pull requests:**
+
+- fix: build the brain ChatEngine from config instead of passing config to the loader [\#21](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/21) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.3a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a3) (2026-09-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a2...0.2.3a3)
