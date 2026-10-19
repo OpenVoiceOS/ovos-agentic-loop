@@ -179,7 +179,7 @@ class CRITICEngine(AgenticLoopEngine):
             return None
         try:
             from ovos_plugin_manager.agents import load_chat_plugin
-            return load_chat_plugin(brain_id, config=self.config.get(brain_id, {}))
+            return load_chat_plugin(brain_id)(config=self.config.get(brain_id, {}))
         except Exception:  # noqa: BLE001
             return None
 
