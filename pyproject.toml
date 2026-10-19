@@ -11,23 +11,23 @@ license = "Apache-2.0"
 authors = [{name = "JarbasAi", email = "jarbasai@mailfence.com"}]
 requires-python = ">=3.10"
 dependencies = [
-    "ovos-plugin-manager>=2.11.1a1,<3.0.0",
+    "ovos-plugin-manager>=2.11.1a1",
     "pydantic>=2.0.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/TigreGotico/ovos-agentic-loop"
-Repository = "https://github.com/TigreGotico/ovos-agentic-loop"
+Homepage = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
+Repository = "https://github.com/OpenVoiceOS/ovos-agentic-loop"
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0.0,<9",
+    "pytest>=7.0.0",
     "pytest-cov",
     "pytest-timeout>=2.0.0",
     "ovoscope>=0.13.1",
     "ovos-persona>=0.9.0a3",
-    "ovos-openai-plugin>=2.0.8a1", 
-    "ovos-solver-failure-plugin", 
+    "ovos-openai-plugin>=2.0.8a1",
+    "ovos-solver-failure-plugin",
     "requests",
 ]
 web = ["duckduckgo-search>=6.0"]
