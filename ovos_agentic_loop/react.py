@@ -220,7 +220,7 @@ class ReActLoopEngine(AgenticLoopEngine):
             return None
         try:
             from ovos_plugin_manager.agents import load_chat_plugin
-            return load_chat_plugin(brain_id, config=self.config.get(brain_id, {}))
+            return load_chat_plugin(brain_id)(config=self.config.get(brain_id, {}))
         except Exception as exc:  # noqa: BLE001
             LOG.warning(f"ReActLoopEngine: failed to load brain '{brain_id}': {exc}")
             return None

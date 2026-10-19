@@ -225,7 +225,7 @@ class TestLoadBrainOPM:
 
         with patch.dict("sys.modules", {
             "ovos_plugin_manager.agents": MagicMock(
-                load_chat_plugin=MagicMock(return_value=mock_brain)
+                load_chat_plugin=MagicMock(return_value=MagicMock(return_value=mock_brain))
             )
         }):
             engine = ReActLoopEngine(config={"brain": "my-brain-plugin"})
@@ -258,7 +258,7 @@ class TestLoadBrainOPM:
 
         with patch.dict("sys.modules", {
             "ovos_plugin_manager.agents": MagicMock(
-                load_chat_plugin=MagicMock(return_value=mock_brain)
+                load_chat_plugin=MagicMock(return_value=MagicMock(return_value=mock_brain))
             )
         }):
             engine = ReActLoopEngine(config={"brain": "my-brain"})
