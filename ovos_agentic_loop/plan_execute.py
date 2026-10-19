@@ -234,8 +234,17 @@ class PlanAndExecuteEngine(AgenticLoopEngine):
             except Exception as e:  # noqa: BLE001 - tool found but raised
                 # Surface the real error as the observation so the loop can recover
                 # instead of being told the tool was "not found".
-                LOG.error(f"tool '{tool_name}' raised: {e}")
-                return f"Error: tool '{tool_name}' failed: {e}"
+                # ToolBox.call_tool wraps the tool's own exception; name the whole chain.
+                reasons = [str(e)]
+                seen = {id(e)}
+                cause = e.__cause__
+                while cause is not None and id(cause) not in seen:
+                    seen.add(id(cause))
+                    reasons.append(f"{type(cause).__name__}: {cause}")
+                    cause = cause.__cause__
+                reason = ": ".join(reasons)
+                LOG.error(f"tool '{tool_name}' raised: {reason}")
+                return f"Error: tool '{tool_name}' failed: {reason}"
         return f"Error: tool '{tool_name}' not found."
 
     def _execute_step(self, step: str, plan: str, completed: str,

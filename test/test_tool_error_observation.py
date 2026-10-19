@@ -12,6 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ovos_plugin_manager.templates.agent_tools import AgentTool, ToolArguments, ToolBox, ToolOutput
+
 from ovos_agentic_loop.react import ReActLoopEngine
 from ovos_agentic_loop.native_toolcall import NativeToolCallEngine
 from ovos_agentic_loop.plan_execute import PlanAndExecuteEngine
@@ -77,3 +79,48 @@ def test_execution_error_does_not_fall_through(engine):
     obs = engine._call_tool("calc", {})
     assert "bad args" in obs
     fallback.call_tool.assert_not_called()
+
+
+class _Args(ToolArguments):
+    text: str
+
+
+class _Out(ToolOutput):
+    text: str
+
+
+class _FlakyToolBox(ToolBox):
+    """A real OPM ToolBox whose one tool fails the way a dead server does."""
+
+    def __init__(self):
+        super().__init__(toolbox_id="flaky")
+
+    def discover_tools(self):
+        def _fetch(args):
+            raise ConnectionError("connection refused by 127.0.0.1:9686")
+        return [AgentTool(name="fetch", description="Fetch text.",
+                          argument_schema=_Args, output_schema=_Out, tool_call=_fetch)]
+
+
+def test_observation_names_the_root_cause_behind_toolbox_wrapping(engine):
+    engine.toolboxes = [_FlakyToolBox()]
+    obs = engine._call_tool("fetch", {"text": "hi"})
+    assert obs.startswith("Error: tool 'fetch' failed: ")
+    assert "ConnectionError: connection refused by 127.0.0.1:9686" in obs
+
+
+def test_observation_names_the_invalid_argument(engine):
+    engine.toolboxes = [_FlakyToolBox()]
+    obs = engine._call_tool("fetch", {"txt": "hi"})
+    assert "Tool input validation failed for 'fetch'" in obs
+    assert "text" in obs.split("ValidationError", 1)[1]
+    assert "Field required" in obs
+
+
+@pytest.mark.timeout(10)
+def test_cyclic_cause_chain_does_not_hang(engine):
+    first, second = ValueError("a"), KeyError("b")
+    first.__cause__, second.__cause__ = second, first
+    engine.toolboxes = [_toolbox(has_tool=True, error=first)]
+    obs = engine._call_tool("calc", {})
+    assert obs == "Error: tool 'calc' failed: a: KeyError: 'b'"
