@@ -57,7 +57,8 @@ def main() -> None:
     brain = OpenAIChatEngine({
         "model": os.environ.get("CALC_MODEL", "qwen2.5"),
         "api_url": os.environ.get("CALC_API_URL",
-                                  "http://localhost:11434/v1/chat/completions"),
+                                  "http://localhost:11434/v1"),
+        "allow_system_prompts": True,
         "api_key": "not-needed-for-local",
         "system_prompt": "You are a precise assistant. Use the math tools to "
                          "compute answers instead of guessing.",

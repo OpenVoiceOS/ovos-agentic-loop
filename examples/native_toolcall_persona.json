@@ -14,7 +14,8 @@
     "ovos-chat-openai-plugin": {
       "_comment": "Needs a brain whose ChatEngine sets supports_tools=True (native function-calling). Point api_url at any OpenAI-compatible server with a tool-capable model.",
       "model": "qwen2.5",
-      "api_url": "http://localhost:11434/v1/chat/completions",
+      "api_url": "http://localhost:11434/v1",
+      "allow_system_prompts": true,
       "api_key": "not-needed-for-local"
     }
   }

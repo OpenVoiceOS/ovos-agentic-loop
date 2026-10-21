@@ -49,7 +49,7 @@ WIKIGPT_ANSWER_MODE : str
     Set to ``RAG`` and configure WIKIGPT_LLM_* for LLM-backed answers.
 WIKIGPT_LLM_URL : str
     LLM endpoint URL (only used when WIKIGPT_ANSWER_MODE=RAG).
-    Default: ``http://localhost:11434/v1/chat/completions``
+    Default: ``http://localhost:11434/v1``
 WIKIGPT_LLM_MODEL : str
     LLM model name (only used when WIKIGPT_ANSWER_MODE=RAG).
     Default: ``qwen3-8b``
@@ -69,7 +69,7 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 # ---------------------------------------------------------------------------
 
 _ANSWER_MODE = os.environ.get("WIKIGPT_ANSWER_MODE", "FIRST_PARAGRAPH")
-_LLM_URL = os.environ.get("WIKIGPT_LLM_URL", "http://localhost:11434/v1/chat/completions")
+_LLM_URL = os.environ.get("WIKIGPT_LLM_URL", "http://localhost:11434/v1")
 _LLM_MODEL = os.environ.get("WIKIGPT_LLM_MODEL", "qwen3-8b")
 _LANG_DETECTOR = os.environ.get("WIKIGPT_LANG_DETECTOR") or None
 
@@ -88,6 +88,7 @@ def _build_persona_config(lang: str) -> dict:
         solver_cfg["llm"] = "ovos-openai-plugin"
         solver_cfg["ovos-openai-plugin"] = {
             "api_url": _LLM_URL,
+            "allow_system_prompts": True,
             "model": _LLM_MODEL,
             "key": "nokey",
         }

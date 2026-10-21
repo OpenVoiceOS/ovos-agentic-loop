@@ -5,7 +5,8 @@
     "max_iterations": 6,
     "llm": "ovos-openai-plugin",
     "ovos-openai-plugin": {
-      "api_url": "http://localhost:11434/v1/chat/completions",
+      "api_url": "http://localhost:11434/v1",
+      "allow_system_prompts": true,
       "model": "qwen3-8b",
       "key": "nokey"
     },

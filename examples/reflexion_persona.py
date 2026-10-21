@@ -45,7 +45,7 @@ Environment variables (optional overrides):
 
     REFLEXION_MODEL        — model name to request (default: "llama3")
     REFLEXION_API_URL      — base URL of the local LLM server
-                             (default: "http://localhost:11434/v1/chat/completions")
+                             (default: "http://localhost:11434/v1")
     REFLEXION_MAX_ROUNDS   — max self-reflection episodes (default: 3)
 """
 import os
@@ -81,7 +81,7 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 # ---------------------------------------------------------------------------
 
 MODEL = os.getenv("REFLEXION_MODEL", "llama3")
-API_URL = os.getenv("REFLEXION_API_URL", "http://localhost:11434/v1/chat/completions")
+API_URL = os.getenv("REFLEXION_API_URL", "http://localhost:11434/v1")
 MAX_ROUNDS = int(os.getenv("REFLEXION_MAX_ROUNDS", "3"))
 
 SYSTEM_PROMPT = (
@@ -106,6 +106,7 @@ PERSONA_CONFIG = {
         "ovos-chat-openai-plugin": {
             "model": MODEL,
             "api_url": API_URL,
+            "allow_system_prompts": True,
             "api_key": "not-needed-for-local",
             "temperature": 0.4,
             "max_tokens": 1024,
@@ -135,6 +136,7 @@ def build_reflexion() -> "ReflexionEngine":
     brain = OpenAIChatEngine(config={
         "model": MODEL,
         "api_url": API_URL,
+        "allow_system_prompts": True,
         "api_key": "not-needed-for-local",
         "temperature": 0.4,
         "max_tokens": 1024,
