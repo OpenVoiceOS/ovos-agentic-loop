@@ -24,6 +24,9 @@ Agent-loop `ChatEngine` plugins for [OVOS](https://openvoiceos.org). This packag
 ```bash
 pip install ovos-agentic-loop
 
+# The brain used in the examples below
+pip install ovos-openai-plugin
+
 # Optional: web search support
 pip install 'ovos-agentic-loop[web]'
 ```
@@ -43,7 +46,8 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 engine = ReActLoopEngine({
     "brain": "ovos-chat-openai-plugin",
     "ovos-chat-openai-plugin": {
-        "api_url": "http://localhost:11434/v1/chat/completions",
+        "api_url": "http://localhost:11434/v1",
+        "allow_system_prompts": True,
     },
     "max_iterations": 8,
 })
@@ -55,6 +59,8 @@ response = engine.continue_chat([
 print(response.content)
 ```
 
+`api_url` is the `/v1` root of the server. The brain adds `/chat/completions` itself. The loop sends its tool instructions as a system message, and `ovos-chat-openai-plugin` discards system messages unless `allow_system_prompts` is true. Without it, the model never sees the tool list and answers without calling a tool.
+
 ### Persona JSON (all-in-one config)
 
 ```json
@@ -64,7 +70,8 @@ print(response.content)
   "ovos-react-loop": {
     "brain": "ovos-chat-openai-plugin",
     "ovos-chat-openai-plugin": {
-      "api_url": "http://localhost:11434/v1/chat/completions"
+      "api_url": "http://localhost:11434/v1",
+      "allow_system_prompts": true
     },
     "toolboxes": ["ovos-math-tools", "ovos-web-search-tools", "ovos-clock-tools"],
     "max_iterations": 10
