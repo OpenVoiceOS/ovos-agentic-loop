@@ -1,8 +1,20 @@
 # Changelog
 
+## [0.2.5a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.5a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a3...0.2.5a1)
+
+**Merged pull requests:**
+
+- fix\(deps\): accept ovos-plugin-manager 3 [\#23](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/23) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.4a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a3) (2026-10-21)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a1...0.2.4a3)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a2...0.2.4a3)
+
+## [0.2.4a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a2) (2026-10-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a1...0.2.4a2)
 
 **Merged pull requests:**
 
