@@ -37,7 +37,7 @@ Usage
     python wikigpt_react_persona.py
 
     # Custom LLM endpoint
-    WIKIGPT_API_URL=http://192.168.1.200:8000/v1/chat/completions \\
+    WIKIGPT_API_URL=http://192.168.1.200:8000/v1 \\
     WIKIGPT_MODEL=qwen3-8b \\
     python wikigpt_react_persona.py
 
@@ -47,8 +47,8 @@ Usage
 Environment variables
 ---------------------
 WIKIGPT_API_URL : str
-    Full ``/v1/chat/completions`` URL of the LLM endpoint.
-    Default: ``http://localhost:11434/v1/chat/completions``
+    Root URL (``/v1``) of the LLM endpoint.
+    Default: ``http://localhost:11434/v1``
 WIKIGPT_MODEL : str
     Model name forwarded to the LLM endpoint.
     Default: ``qwen3-8b``
@@ -69,7 +69,7 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 # ---------------------------------------------------------------------------
 
 _API_URL = os.environ.get(
-    "WIKIGPT_API_URL", "http://localhost:11434/v1/chat/completions"
+    "WIKIGPT_API_URL", "http://localhost:11434/v1"
 )
 _MODEL = os.environ.get("WIKIGPT_MODEL", "qwen3-8b")
 _MAX_ITER = int(os.environ.get("WIKIGPT_MAX_ITER", "6"))
@@ -84,6 +84,7 @@ PERSONA_CONFIG = {
         "llm": "ovos-openai-plugin",
         "ovos-openai-plugin": {
             "api_url": _API_URL,
+            "allow_system_prompts": True,
             "model": _MODEL,
             "key": "nokey",
         },

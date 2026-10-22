@@ -4,18 +4,18 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)](https://www.python.org/)
 
-Agent-loop `ChatEngine` plugins for [OVOS](https://openvoiceos.org). Implements seven agentic reasoning patterns (ReAct, Plan-and-Execute, Reflexion, Self-Ask, Chain-of-Thought, CRITIC, Tree-of-Thoughts), five built-in toolboxes, SKILL.md integration, and AGENTS.md context management — all as standard OPM plugins.
+Agent-loop `ChatEngine` plugins for [OVOS](https://openvoiceos.org). This package implements seven agentic reasoning patterns: ReAct, Plan-and-Execute, Reflexion, Self-Ask, Chain-of-Thought, CRITIC, and Tree-of-Thoughts. It also ships five built-in toolboxes, SKILL.md integration, and AGENTS.md context management. All components ship as standard OPM plugins.
 
 ---
 
 ## Features
 
-- **7 loop architectures** — from simple Chain-of-Thought to full Reflexion and Tree-of-Thoughts beam search
-- **5 built-in toolboxes** — filesystem, shell, web search, clock, math (calculator + unit conversion + statistics)
-- **SKILL.md toolbox** — turns any installed SKILL.md file into an agent tool
-- **AGENTS.md context manager** — loads structured system prompts from AGENTS.md files at runtime
-- **No LLM bundled** — wire any OPM `ChatEngine` as the inner brain
-- **No persona bundled** — compose your own persona using the provided primitives
+- **7 loop architectures**: from simple Chain-of-Thought to full Reflexion and Tree-of-Thoughts beam search
+- **5 built-in toolboxes**: filesystem, shell, web search, clock, math (calculator + unit conversion + statistics)
+- **SKILL.md toolbox**: turns any installed SKILL.md file into an agent tool
+- **AGENTS.md context manager**: loads structured system prompts from AGENTS.md files at runtime
+- **No LLM bundled**: wire any OPM `ChatEngine` as the inner brain
+- **No persona bundled**: compose your own persona using the provided primitives
 
 ---
 
@@ -23,6 +23,9 @@ Agent-loop `ChatEngine` plugins for [OVOS](https://openvoiceos.org). Implements 
 
 ```bash
 pip install ovos-agentic-loop
+
+# The brain used in the examples below
+pip install ovos-openai-plugin
 
 # Optional: web search support
 pip install 'ovos-agentic-loop[web]'
@@ -43,7 +46,8 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 engine = ReActLoopEngine({
     "brain": "ovos-chat-openai-plugin",
     "ovos-chat-openai-plugin": {
-        "api_url": "http://localhost:11434/v1/chat/completions",
+        "api_url": "http://localhost:11434/v1",
+        "allow_system_prompts": True,
     },
     "max_iterations": 8,
 })
@@ -55,6 +59,8 @@ response = engine.continue_chat([
 print(response.content)
 ```
 
+`api_url` is the `/v1` root of the server. The brain adds `/chat/completions` itself. The loop sends its tool instructions as a system message, and `ovos-chat-openai-plugin` discards system messages unless `allow_system_prompts` is true. Without it, the model never sees the tool list and answers without calling a tool.
+
 ### Persona JSON (all-in-one config)
 
 ```json
@@ -64,7 +70,8 @@ print(response.content)
   "ovos-react-loop": {
     "brain": "ovos-chat-openai-plugin",
     "ovos-chat-openai-plugin": {
-      "api_url": "http://localhost:11434/v1/chat/completions"
+      "api_url": "http://localhost:11434/v1",
+      "allow_system_prompts": true
     },
     "toolboxes": ["ovos-math-tools", "ovos-web-search-tools", "ovos-clock-tools"],
     "max_iterations": 10
@@ -113,13 +120,13 @@ description: Does something useful.
 You are a helpful assistant specialised in...
 ```
 
-The tool name is the slugified `name` field; the SKILL.md body becomes the system prompt for a sub-LLM call.
+The tool name is the slugified `name` field. The SKILL.md body becomes the system prompt for a sub-LLM call.
 
 ---
 
 ## AGENTS.md Context Management
 
-`AgentsMDContextManager` assembles system prompts from `AGENTS.md` files at runtime — the same files Claude Code reads at dev-time:
+`AgentsMDContextManager` assembles system prompts from `AGENTS.md` files at runtime. These are the same files Claude Code reads at dev-time:
 
 ```python
 from ovos_agentic_loop.context.agents_md import AgentsMDContextManager
@@ -135,23 +142,31 @@ messages = ctx.build_conversation_context(utterance, session_id="s1")
 
 ## Security Notes
 
-- **`ShellToolBox`** — `allow_shell` defaults to `False`. Only enable with fully-trusted LLMs; the command string is passed directly to `/bin/sh`.
-- **`FileSystemToolBox`** — set `root_path` to restrict file access to a subtree. Without it, the agent can read any world-readable file.
-- **`MathToolBox`** — uses `ast.parse` with an allowlist; `eval()` is never called.
+- **`ShellToolBox`**: `allow_shell` defaults to `False`. Only enable with fully-trusted LLMs. The command string is passed directly to `/bin/sh`.
+- **`FileSystemToolBox`**: set `root_path` to restrict file access to a subtree. Without it, the agent can read any world-readable file.
+- **`MathToolBox`**: uses `ast.parse` with an allowlist. `eval()` is never called.
 
 ---
 
 ## Documentation
 
-- [docs/loop-architectures.md](docs/loop-architectures.md) — all 7 loop engines with algorithm details
-- [docs/react-loop.md](docs/react-loop.md) — ReAct prompt format and parsing
-- [docs/toolboxes.md](docs/toolboxes.md) — all toolbox schemas and config keys
-- [docs/skill-md.md](docs/skill-md.md) — SKILL.md authoring and packaging guide
-- [docs/agents-md.md](docs/agents-md.md) — AGENTS.md context manager reference
-- [docs/opm-integration.md](docs/opm-integration.md) — OPM entry points and persona wiring
+- [docs/loop-architectures.md](docs/loop-architectures.md): all 7 loop engines with algorithm details
+- [docs/react-loop.md](docs/react-loop.md): ReAct prompt format and parsing
+- [docs/toolboxes.md](docs/toolboxes.md): all toolbox schemas and config keys
+- [docs/skill-md.md](docs/skill-md.md): SKILL.md authoring and packaging guide
+- [docs/agents-md.md](docs/agents-md.md): AGENTS.md context manager reference
+- [docs/opm-integration.md](docs/opm-integration.md): OPM entry points and persona wiring
 
 ---
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE).
+Apache 2.0. See [LICENSE](LICENSE).
+
+## Credits
+
+Developed by [TigreGotico](https://tigregotico.pt) for [OpenVoiceOS](https://openvoiceos.org).
+
+Funded by [NGI0 Commons Fund](https://nlnet.nl/project/OpenVoiceOS) / [NLnet](https://nlnet.nl)
+under grant agreement No [101135429](https://cordis.europa.eu/project/id/101135429),
+through the European Commission's [Next Generation Internet](https://ngi.eu) programme.

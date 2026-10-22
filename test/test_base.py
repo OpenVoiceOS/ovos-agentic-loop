@@ -75,30 +75,27 @@ class TestAbstractEnforcement:
 class TestLoadToolboxesFromConfigOPM:
     def test_loads_toolbox_via_opm(self) -> None:
         mock_toolbox = MagicMock()
-        mock_toolbox.tool_json_list = []
+        mock_toolbox_cls = MagicMock(return_value=mock_toolbox)
 
         with patch.dict("sys.modules", {
-            "ovos_plugin_manager.agent_tools": MagicMock(
-                load_toolbox_plugin=MagicMock(return_value=mock_toolbox)
+            "ovos_plugin_manager.persona": MagicMock(
+                find_toolbox_plugins=MagicMock(return_value={"my-toolbox": mock_toolbox_cls})
             )
         }):
             engine = _ConcreteLoopEngine(config={"toolboxes": ["my-toolbox"]})
 
         assert mock_toolbox in engine.toolboxes
+        mock_toolbox_cls.assert_called_once_with(config={}, bus=None)
 
     def test_skips_gracefully_when_opm_unavailable(self) -> None:
-        import sys
-        # Ensure import fails for agent_tools
-        with patch.dict("sys.modules", {"ovos_plugin_manager.agent_tools": None}):
+        with patch.dict("sys.modules", {"ovos_plugin_manager.persona": None}):
             engine = _ConcreteLoopEngine(config={"toolboxes": ["my-toolbox"]})
         assert engine.toolboxes == []
 
     def test_warns_on_toolbox_load_failure(self, capsys: "pytest.CaptureFixture") -> None:
-        mock_loader = MagicMock(side_effect=RuntimeError("load failed"))
-
         with patch.dict("sys.modules", {
-            "ovos_plugin_manager.agent_tools": MagicMock(
-                load_toolbox_plugin=mock_loader
+            "ovos_plugin_manager.persona": MagicMock(
+                find_toolbox_plugins=MagicMock(return_value={})
             )
         }):
             engine = _ConcreteLoopEngine(config={"toolboxes": ["bad-tb"]})

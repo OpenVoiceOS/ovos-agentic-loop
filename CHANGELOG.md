@@ -1,0 +1,106 @@
+# Changelog
+
+## [0.2.5a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.5a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a3...0.2.5a1)
+
+**Merged pull requests:**
+
+- fix\(deps\): accept ovos-plugin-manager 3 [\#23](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/23) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.4a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a3) (2026-10-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a2...0.2.4a3)
+
+## [0.2.4a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a2) (2026-10-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.4a1...0.2.4a2)
+
+**Merged pull requests:**
+
+- docs: fix api\_url and enable system prompts in the examples [\#25](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/25) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- docs: fix README api\_url and enable system prompts in the quick start [\#24](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/24) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.4a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.4a1) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a3...0.2.4a1)
+
+**Merged pull requests:**
+
+- fix: build the brain ChatEngine from config instead of passing config to the loader [\#21](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/21) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.3a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a3) (2026-09-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a2...0.2.3a3)
+
+**Merged pull requests:**
+
+- chore: Configure Renovate [\#1](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/1) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.2.3a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a2) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.3a1...0.2.3a2)
+
+**Merged pull requests:**
+
+- docs: rewrite README in Simplified Technical English [\#14](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/14) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.3a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.3a1) (2026-08-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.2a1...0.2.3a1)
+
+**Merged pull requests:**
+
+- fix: accept tools kwarg in non-tool-capable ChatEngine overrides [\#15](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.2a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.2a1) (2026-07-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a3...0.2.2a1)
+
+**Merged pull requests:**
+
+- fix: adopt config/bus ToolBox constructor contract [\#12](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/12) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.1a3](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a3) (2026-06-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a2...0.2.1a3)
+
+**Merged pull requests:**
+
+- test: full-pipeline e2e persona test \(ovoscope\) [\#4](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/4) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.1a2](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a2) (2026-06-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.1a1...0.2.1a2)
+
+**Merged pull requests:**
+
+- chore: add Apache-2.0 LICENSE file [\#9](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/9) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.1a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.1a1) (2026-06-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.2.0a1...0.2.1a1)
+
+**Merged pull requests:**
+
+- fix: surface tool-execution errors as observations so the loop can recover [\#7](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/7) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.2.0a1) (2026-06-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.1.1a1...0.2.0a1)
+
+**Merged pull requests:**
+
+- feat: NativeToolCallEngine — provider-native tool-calling loop [\#5](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/5) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.1a1](https://github.com/OpenVoiceOS/ovos-agentic-loop/tree/0.1.1a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-agentic-loop/compare/0.1.0...0.1.1a1)
+
+**Merged pull requests:**
+
+- fix: make SkillMDLoader tests hermetic [\#2](https://github.com/OpenVoiceOS/ovos-agentic-loop/pull/2) ([JarbasAl](https://github.com/JarbasAl))
+
+
+
+\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*

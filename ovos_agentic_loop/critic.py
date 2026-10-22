@@ -40,7 +40,7 @@ Key differences from Reflexion
 import re
 from typing import Any, Dict, List, Optional
 
-from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine, MessageRole
+from ovos_plugin_manager.templates.agents import AgentMessage, ChatEngine, MessageRole, ToolsArg
 
 from ovos_agentic_loop.base import AgenticLoopEngine
 
@@ -179,7 +179,7 @@ class CRITICEngine(AgenticLoopEngine):
             return None
         try:
             from ovos_plugin_manager.agents import load_chat_plugin
-            return load_chat_plugin(brain_id, config=self.config.get(brain_id, {}))
+            return load_chat_plugin(brain_id)(config=self.config.get(brain_id, {}))
         except Exception:  # noqa: BLE001
             return None
 
@@ -227,7 +227,8 @@ class CRITICEngine(AgenticLoopEngine):
     def continue_chat(self, messages: List[AgentMessage],
                       session_id: str = "default",
                       lang: Optional[str] = None,
-                      units: Optional[str] = None) -> AgentMessage:
+                      units: Optional[str] = None,
+                      tools: "ToolsArg" = None) -> AgentMessage:
         """
         Run the CRITIC loop and return the verified, revised answer.
 
@@ -244,6 +245,14 @@ class CRITICEngine(AgenticLoopEngine):
             ``AgentMessage`` with ``MessageRole.ASSISTANT`` containing the
             verified and revised answer.
         """
+        # `tools` is accepted (and ignored) purely for contract conformance with
+        # ovos_plugin_manager.templates.agents.ChatEngine.continue_chat, whose
+        # signature declares it unconditionally. This engine is not tool-capable
+        # (supports_tools stays False). Accepting the kwarg matters because the
+        # agentic-loop ReAct fallback (see native_toolcall.py) calls
+        # `self.brain.continue_chat(..., tools=...)` on whatever brain engine is
+        # configured, even non-tool-capable ones — omitting `tools` here would
+        # raise TypeError on that call path.
         if self.brain is None:
             return AgentMessage(role=MessageRole.ASSISTANT,
                                 content="Error: no brain configured.")

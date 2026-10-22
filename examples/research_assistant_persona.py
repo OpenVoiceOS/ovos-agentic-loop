@@ -42,7 +42,7 @@ Environment variables (optional overrides):
 
     RESEARCH_MODEL    — model name to request (default: "llama3")
     RESEARCH_API_URL  — base URL of the local LLM server
-                        (default: "http://localhost:11434/v1/chat/completions")
+                        (default: "http://localhost:11434/v1")
     RESEARCH_RESULTS  — max web search results per query (default: 5)
 """
 import os
@@ -79,7 +79,7 @@ from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
 # ---------------------------------------------------------------------------
 
 MODEL = os.getenv("RESEARCH_MODEL", "llama3")
-API_URL = os.getenv("RESEARCH_API_URL", "http://localhost:11434/v1/chat/completions")
+API_URL = os.getenv("RESEARCH_API_URL", "http://localhost:11434/v1")
 MAX_RESULTS = int(os.getenv("RESEARCH_RESULTS", "5"))
 
 SYSTEM_PROMPT = (
@@ -105,6 +105,7 @@ PERSONA_CONFIG = {
         "ovos-chat-openai-plugin": {
             "model": MODEL,
             "api_url": API_URL,
+            "allow_system_prompts": True,
             "api_key": "not-needed-for-local",
             "temperature": 0.3,
             "max_tokens": 1024,
@@ -134,6 +135,7 @@ def build_researcher() -> "ReActLoopEngine":
     brain = OpenAIChatEngine(config={
         "model": MODEL,
         "api_url": API_URL,
+        "allow_system_prompts": True,
         "api_key": "not-needed-for-local",
         "temperature": 0.3,
         "max_tokens": 1024,

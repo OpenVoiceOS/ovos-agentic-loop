@@ -13,7 +13,7 @@ Converts installed SKILL.md files into `AgentTool` instances. Each SKILL.md yiel
 
 ### Tool: (one per SKILL.md, dynamically generated)
 
-Tool name is slugified from the SKILL.md `name` frontmatter field via `_slugify()` — `toolbox.py:12`:
+Tool name is slugified from the SKILL.md `name` frontmatter field via `_slugify()` (`toolbox.py:12`):
 - Lower-case, non-alphanumeric characters replaced with underscores, leading/trailing underscores stripped.
 - Example: `"web-search"` → `"web_search"`.
 
@@ -27,7 +27,7 @@ Tool name is slugified from the SKILL.md `name` frontmatter field via `_slugify(
 | `result` | str | Natural-language response from the sub-LLM |
 | `skill_used` | str | The SKILL.md `name` field of the invoked skill |
 
-### Tool Execution (`_invoke_skill`) — `toolbox.py:96`
+### Tool Execution (`_invoke_skill`): `toolbox.py:96`
 
 1. Raises `RuntimeError` if no brain has been set.
 2. Builds user content: `args.task` if no context, else `"{task}\n\nContext: {context}"`.
@@ -42,7 +42,7 @@ Tool name is slugified from the SKILL.md `name` frontmatter field via `_slugify(
 
 ### Brain Injection
 
-`set_brain(brain: ChatEngine)` — `toolbox.py:87`. Must be called before any tool invocation. The owning `ReActLoopEngine` does **not** auto-share its brain; manual wiring is required (see AUDIT ISSUE-002).
+`set_brain(brain: ChatEngine)` (`toolbox.py:87`). Must be called before any tool invocation. The owning `ReActLoopEngine` does **not** auto-share its brain; manual wiring is required (see AUDIT ISSUE-002).
 
 ### Example Persona Config
 
@@ -74,11 +74,11 @@ Provides five tools for local filesystem interaction.
 | `content` | str | UTF-8 file contents or error message |
 | `path` | str | Resolved absolute path |
 
-On any `Exception`, returns the exception message in `content` rather than raising — `filesystem.py:127`.
+On any `Exception`, returns the exception message in `content` rather than raising (`filesystem.py:127`).
 
 ### Tool: `write_file`
 
-Guarded by `allow_write` config flag — `filesystem.py:140`.
+Guarded by `allow_write` config flag (`filesystem.py:140`).
 
 | Argument | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
@@ -91,13 +91,13 @@ Guarded by `allow_write` config flag — `filesystem.py:140`.
 | `path` | str | Resolved absolute path |
 | `message` | str | Human-readable status |
 
-When `allow_write=False`, the tool is still registered in `discover_tools()` — `filesystem.py:264` — with a description noting it is disabled, so the LLM knows the tool exists but is unavailable. The `_write_file` handler checks the flag at call time and returns `success=False`.
+When `allow_write=False`, the tool is still registered in `discover_tools()` (`filesystem.py:264`), with a description noting it is disabled, so the LLM knows the tool exists but is unavailable. The `_write_file` handler checks the flag at call time and returns `success=False`.
 
 ### Tool: `list_directory`
 
 | Argument | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `path` | str | — | Directory to list |
+| `path` | str | required | Directory to list |
 | `pattern` | str | `"*"` | Shell glob filter |
 
 | Output field | Type | Description |
@@ -109,7 +109,7 @@ When `allow_write=False`, the tool is still registered in `discover_tools()` —
 
 | Argument | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `pattern` | str | — | Regular expression to search |
+| `pattern` | str | required | Regular expression to search |
 | `path` | str | `"."` | Root directory |
 | `glob` | str | `"**/*"` | Glob to select files |
 
@@ -118,13 +118,13 @@ When `allow_write=False`, the tool is still registered in `discover_tools()` —
 | `matches` | List[Dict] | Each dict: `{file, line_number, line}` |
 | `total` | int | Count of matching lines |
 
-Invalid regex returns empty results without raising — `filesystem.py:186`.
+Invalid regex returns empty results without raising (`filesystem.py:186`).
 
 ### Tool: `find_files`
 
 | Argument | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `glob` | str | — | Glob pattern (e.g. `**/*.py`) |
+| `glob` | str | required | Glob pattern (e.g. `**/*.py`) |
 | `path` | str | `"."` | Root directory |
 
 | Output field | Type | Description |
@@ -159,11 +159,11 @@ Exposes one tool for executing shell commands.
 
 ### Tool: `run_command`
 
-Uses `subprocess.run(..., shell=True, ...)` — `shell.py:75`.
+Uses `subprocess.run(..., shell=True, ...)` (`shell.py:75`).
 
 | Argument | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `command` | str | — | Shell command to execute |
+| `command` | str | required | Shell command to execute |
 | `cwd` | str | `"."` | Working directory |
 | `timeout` | int | `30` | Requested timeout (seconds); capped at `max_timeout` config |
 
@@ -174,11 +174,11 @@ Uses `subprocess.run(..., shell=True, ...)` — `shell.py:75`.
 | `returncode` | int | Exit code (`-1` on timeout or error) |
 | `success` | bool | `True` if `returncode == 0` |
 
-Timeout cap: `effective_timeout = min(args.timeout, config["max_timeout"])` — `shell.py:72`.
+Timeout cap: `effective_timeout = min(args.timeout, config["max_timeout"])` (`shell.py:72`).
 
-On `TimeoutExpired`, returns `returncode=-1` and a message in `stderr` — `shell.py:90`.
+On `TimeoutExpired`, returns `returncode=-1` and a message in `stderr` (`shell.py:90`).
 
-When `allow_shell=False`, returns immediately with `returncode=-1` and `"Shell execution is disabled"` in `stderr` — `shell.py:63`.
+When `allow_shell=False`, returns immediately with `returncode=-1` and `"Shell execution is disabled"` in `stderr` (`shell.py:63`).
 
 ### Config Keys
 
@@ -186,7 +186,7 @@ When `allow_shell=False`, returns immediately with `returncode=-1` and `"Shell e
 | :--- | :--- | :--- | :--- |
 | `allow_shell` | bool | `False` | Must be explicitly set to `True` to enable execution |
 | `max_timeout` | int | `120` | Maximum allowed timeout in seconds |
-| `allowed_commands` | list[str] | `[]` | Permitted command prefixes. Empty = all allowed. Non-empty = only matching prefixes execute — `shell.py:85` |
+| `allowed_commands` | list[str] | `[]` | Permitted command prefixes. Empty = all allowed. Non-empty = only matching prefixes execute (`shell.py:85`) |
 
 When `allowed_commands` is non-empty, the first word of the command is matched against each prefix. Non-matching commands return `returncode=-1` and `"not permitted"` in `stderr` without any subprocess execution.
 
@@ -221,7 +221,7 @@ Install: `pip install 'ovos-agentic-loop[web]'`
 
 | Argument | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `query` | str | — | Search query string |
+| `query` | str | required | Search query string |
 | `max_results` | int | `5` | Maximum results to return |
 
 | Output field | Type | Description |
@@ -229,11 +229,11 @@ Install: `pip install 'ovos-agentic-loop[web]'`
 | `results` | List[Dict] | Each dict: `{title, url, snippet}` |
 | `query` | str | The query that was executed |
 
-If `duckduckgo-search` is not installed, returns one result with `title="Package not installed"` and an install instruction in `snippet` — `web.py:65`. No exception is raised; the LLM receives a friendly error observation.
+If `duckduckgo-search` is not installed, returns one result with `title="Package not installed"` and an install instruction in `snippet` (`web.py:65`). No exception is raised; the LLM receives a friendly error observation.
 
-If the search call itself fails, returns one result with `title="Search error"` and the exception message in `snippet` — `web.py:93`.
+If the search call itself fails, returns one result with `title="Search error"` and the exception message in `snippet` (`web.py:93`).
 
-URL field normalisation: tries `r.get("href", r.get("url", ""))` to handle API key differences across package versions — `web.py:84`.
+URL field normalisation: tries `r.get("href", r.get("url", ""))` to handle API key differences across package versions (`web.py:84`).
 
 ### Config Keys
 
@@ -267,7 +267,7 @@ No input arguments.
 | `time` | str | `HH:MM:SS` |
 | `timezone` | str | System timezone name (e.g. `"UTC"`, `"EST"`) or UTC offset string |
 
-Implementation: `datetime.now().astimezone()` — `clock.py:53`. Timezone name falls back to `str(now.utcoffset())` if `tzname()` returns empty — `clock.py:54`.
+Implementation: `datetime.now().astimezone()` (`clock.py:53`). Timezone name falls back to `str(now.utcoffset())` if `tzname()` returns empty (`clock.py:54`).
 
 ### Config Keys
 
@@ -295,7 +295,7 @@ Safe mathematical operations. No external dependencies required for three of the
 | `expression` | str | Original input |
 | `error` | str\|None | Error message on failure |
 
-Evaluation uses `ast.parse` + a whitelist of operators and functions — no `eval()` — `math.py:71`. Supported: `+`, `-`, `*`, `/`, `//`, `%`, `**`, and functions `abs, round, sqrt, ceil, floor, log, log10, log2, exp, sin, cos, tan, asin, acos, atan, atan2, degrees, radians, factorial, gcd, lcm`. Constants: `pi, e, tau, inf`.
+Evaluation uses `ast.parse` and a whitelist of operators and functions. It never calls `eval()` (`math.py:71`). Supported: `+`, `-`, `*`, `/`, `//`, `%`, `**`, and functions `abs, round, sqrt, ceil, floor, log, log10, log2, exp, sin, cos, tan, asin, acos, atan, atan2, degrees, radians, factorial, gcd, lcm`. Constants: `pi, e, tau, inf`.
 
 ### Tool: `unit_convert`
 
@@ -311,7 +311,7 @@ Evaluation uses `ast.parse` + a whitelist of operators and functions — no `eva
 | `category` | str | Measurement category |
 | `error` | str\|None | Error on failure |
 
-Supported categories: `length`, `mass`, `volume`, `time`, `speed`, `area`, `data`, `temperature`. Temperature uses affine conversion (Celsius/Fahrenheit/Kelvin); all others use SI-base linear factors — `math.py:136`. Incompatible categories return an error.
+Supported categories: `length`, `mass`, `volume`, `time`, `speed`, `area`, `data`, `temperature`. Temperature uses affine conversion (Celsius/Fahrenheit/Kelvin); all others use SI-base linear factors (`math.py:136`). Incompatible categories return an error.
 
 ### Tool: `statistics_summary`
 
@@ -341,8 +341,11 @@ Supported categories: `length`, `mass`, `volume`, `time`, `speed`, `area`, `data
 | `method` | str | `"symbolic"` (sympy) or `"numeric"` (bisection fallback) |
 | `error` | str\|None | Error on failure |
 
-Tries `sympy.solve` first; falls back to bisection scan over `[-1000, 1000]` — `math.py:375`.
+Tries `sympy.solve` first; falls back to bisection scan over `[-1000, 1000]` (`math.py:375`).
 
 ### Config Keys
 
 None.
+
+---
+[← ReAct Loop](react-loop.md) · [Home](../README.md) · [SKILL.md →](skill-md.md)
